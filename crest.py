@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 from urllib.parse import urlencode
 
 import requests
@@ -58,9 +57,6 @@ class CRest:
             }
             result["install"] = CRest.set_app_settings(app_settings, isInstall=True)
 
-        # Логируем запрос и результат
-        CRest.set_log({"request": request, "result": result}, "installApp")
-
         return result
 
     @staticmethod
@@ -108,13 +104,16 @@ class CRest:
         settings_path = os.path.join(os.path.dirname(__file__), "settings.json")
 
         try:
+            # Преобразуем данные в формат JSON
+            json_data = json.dumps(arSettings, ensure_ascii=False, indent=4)
+
             # Открываем файл для записи и записываем данные
             with open(settings_path, "w") as file:
-                file.write(CRest.wrap_data(arSettings))
+                file.write(json_data)
             return True
-        except (IOError, TypeError) as e:
-            # Логируем ошибку, если запись не удалась
-            CRest.set_log({"error": str(e)}, "setSettingData")
+        except (IOError, TypeError, ValueError) as e:
+            # Можно добавить логирование ошибки или сообщение для отладки
+            print(f"Ошибка при записи данных в файл: {e}")
             return False
 
     @staticmethod
@@ -153,9 +152,7 @@ class CRest:
 
             return False
 
-        except Exception as e:
-            # Логирование ошибки для диагностики
-            CRest.set_log({"error": str(e)}, "getAppSettings")
+        except Exception:
             return False
 
     @staticmethod
@@ -176,14 +173,12 @@ class CRest:
 
         if os.path.exists(settings_path):
             try:
-                # Открываем файл и читаем данные
+                # Открываем файл и читаем данные напрямую как JSON
                 with open(settings_path, "r") as file:
-                    raw_data = file.read()
-                    # Обработка данных, аналогичная expandData
-                    return_data = CRest.expand_data(raw_data)
-            except (IOError, TypeError) as e:
-                # Логируем ошибку чтения или декодирования JSON
-                CRest.set_log({"error": str(e)}, "getSettingData")
+                    return_data = json.load(file)
+            except (IOError, TypeError, json.JSONDecodeError) as e:
+                # Логирование ошибки или вывод сообщения для отладки
+                print(f"Ошибка при чтении или разборе файла настроек: {e}")
                 return {}
 
         # Получаем переменные окружения с использованием environs
@@ -196,88 +191,6 @@ class CRest:
             return_data["C_REST_CLIENT_SECRET"] = client_secret
 
         return return_data
-
-    @staticmethod
-    def change_encoding(data, encoding=True):
-        """
-        Изменяет кодировку данных.
-
-        ### Описание:
-        Преобразует строки из одной кодировки в другую, в зависимости от параметра `encoding`.
-
-        #### Аргументы:
-        - data (str | dict): Данные, которые нужно преобразовать.
-        - encoding (bool): Если True, преобразует данные в UTF-8. Если False, декодирует из UTF-8 в исходную кодировку.
-
-        #### Возвращаемое значение:
-        - str | dict: Данные с измененной кодировкой.
-        """
-        current_encoding = env.str("C_REST_CURRENT_ENCODING", default="utf-8")
-
-        if isinstance(data, dict):
-            return {
-                CRest.change_encoding(k, encoding): CRest.change_encoding(v, encoding)
-                for k, v in data.items()
-            }
-        elif isinstance(data, str):
-            if encoding:
-                return data.encode(current_encoding, errors="ignore").decode("utf-8")
-            else:
-                return data.encode("utf-8", errors="ignore").decode(current_encoding)
-        else:
-            # Если data не строка, список или словарь, возвращаем его без изменений
-            return data
-
-    @staticmethod
-    def expand_data(data):
-        """
-        Расширяет данные, декодируя JSON и изменяя кодировку.
-
-        ### Описание:
-        Декодирует строку JSON и изменяет её кодировку, если переменная `C_REST_CURRENT_ENCODING` определена.
-
-        #### Аргументы:
-        - data (str): Строка JSON для декодирования.
-
-        #### Возвращаемое значение:
-        - dict: Расширенные данные в виде словаря.
-        """
-        # Декодирование строки JSON
-        return_data = json.loads(data)
-        # Изменение кодировки данных, если переменная окружения установлена
-        if env.str("C_REST_CURRENT_ENCODING", default=None):
-            return_data = CRest.change_encoding(return_data, encoding=False)
-        return return_data
-
-    @staticmethod
-    def wrap_data(data, debug=False):
-        """
-        Кодирует данные в формате JSON с учетом кодировки и опциональной отладки.
-
-        ### Описание:
-        Метод преобразует данные в JSON-формат, учитывая текущую кодировку, если это необходимо.
-        При активной отладке метод проверяет наличие ошибок кодирования и возвращает сообщение об ошибке, если таковая имеется.
-
-        #### Аргументы:
-        - `data`: Данные, которые необходимо закодировать в JSON.
-        - `debug` (bool, по умолчанию False): Если True, включает режим отладки, который проверяет наличие ошибок кодирования.
-
-        #### Возвращаемое значение:
-        - `str`: Закодированные данные в формате JSON или сообщение об ошибке.
-        """
-        # Преобразование кодировки, если указана переменная окружения
-        if env.str("C_REST_CURRENT_ENCODING", None):
-            data = CRest.change_encoding(data, encoding=True)
-
-        try:
-            # Кодирование данных в формат JSON с экранированием специальных символов
-            result = json.dumps(data, ensure_ascii=False, indent=4)
-        except (TypeError, ValueError) as e:
-            if debug:
-                error_message = f"Failed encoding! Error: {str(e)}"
-                return error_message
-
-        return result
 
     @staticmethod
     def call(method, params=None):
@@ -302,10 +215,6 @@ class CRest:
 
         # Формируем данные запроса
         arPost = {"method": method, "params": params}
-
-        # Преобразование кодировки, если указано в переменной окружения
-        if env.str("C_REST_CURRENT_ENCODING", None):
-            arPost["params"] = CRest.change_encoding(arPost["params"])
 
         # Выполнение запроса и возврат результата
         result = CRest.call_curl(arPost)
@@ -349,10 +258,6 @@ class CRest:
 
         # Проверяем, что входные данные являются словарем
         if isinstance(arData, dict):
-            # Преобразуем кодировку данных, если указано в переменной окружения
-            if env.str("C_REST_CURRENT_ENCODING", None):
-                arData = CRest.change_encoding(arData)
-
             # Словарь для хранения команд и параметров для пакетного вызова
             arDataRest = {"cmd": {}}
             i = 0
@@ -383,6 +288,23 @@ class CRest:
         return arResult
 
     @staticmethod
+    def flatten_dict(d, parent_key='', sep=''):
+        items = []
+        for k, v in d.items():
+            new_key = f'{parent_key}{sep}[{k}]' if parent_key else k
+            if isinstance(v, dict):
+                items.extend(CRest.flatten_dict(v, new_key, sep=sep).items())
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    if isinstance(item, dict):
+                        items.extend(CRest.flatten_dict(item, f'{new_key}[{i}]', sep=sep).items())
+                    else:
+                        items.append((f'{new_key}[{i}]', item))
+            else:
+                items.append((new_key, v))
+        return dict(items)
+
+    @staticmethod
     def call_curl(params):
         """
         Выполняет HTTP-запрос с использованием библиотеки requests.
@@ -404,28 +326,28 @@ class CRest:
                 url = f"{arSettings['client_endpoint']}{params['method']}.{CRest.TYPE_TRANSPORT}"
                 if arSettings.get("is_web_hook") != "Y":
                     params["params"]["auth"] = arSettings["access_token"]
+            print(url)
+            print(params["params"])
+            
 
-            # Получение значения IGNORE_SSL из переменных окружения
-            ignore_ssl = env.bool(
-                "IGNORE_SSL", False
-            )  # По умолчанию False, если переменная не задана
 
-            # Использование значения ignore_ssl в настройках SSL
-            verify = not ignore_ssl
 
+            flat_dict = CRest.flatten_dict(params["params"], sep='')
+            print(flat_dict)
+            sPostFields = urlencode(flat_dict, doseq=True)
+            print(sPostFields)
             # Выполнение POST-запроса
             try:
                 response = requests.post(
                     url,
-                    data=params["params"],
+                    data=sPostFields,
                     headers={"User-Agent": f"Bitrix24 CRest Python {CRest.VERSION}"},
-                    verify=verify,
                 )
-
+                result = response.text
                 if CRest.TYPE_TRANSPORT == "xml" and params.get("this_auth") != "Y":
-                    result = response.text
+                    result = result
                 else:
-                    result = CRest.expand_data(response.text)
+                    result = json.loads(response.text)
 
                 # Обработка ошибок в ответе
                 if "error" in result:
@@ -448,39 +370,13 @@ class CRest:
                             result["error"], "Unknown error"
                         )
 
-                # Логирование результата
-                CRest.set_log(
-                    {
-                        "url": url,
-                        "info": response.headers,
-                        "params": params,
-                        "result": result,
-                    },
-                    "callCurl",
-                )
-
                 return result
             except Exception as e:
-                # Логирование ошибки исключения
-                CRest.set_log(
-                    {
-                        "message": str(e),
-                        "code": e.__class__.__name__,
-                        "trace": e.__traceback__,
-                        "params": params,
-                    },
-                    "exceptionCurl",
-                )
-
                 return {
                     "error": "exception",
                     "error_exception_code": e.__class__.__name__,
                     "error_information": str(e),
                 }
-        else:
-            # Логирование отсутствия настроек
-            CRest.set_log({"params": params}, "emptySetting")
-
         return {
             "error": "no_install_app",
             "error_information": "Error installing app, please install the local application",
@@ -563,31 +459,3 @@ class CRest:
             }
 
         return result
-
-    @staticmethod
-    def set_log(data, log_type=""):
-        """
-        Записывает данные в лог-файл.
-
-        Аргументы:
-        - data (dict): Данные для логирования.
-        - log_type (str): Тип лога, используемый в названии файла.
-        """
-        try:
-            # Добавление текущей даты и времени к данным
-            if isinstance(data, dict):
-                data["date"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            # Определение пути к директории логов
-            logs_dir = os.path.join(os.path.dirname(__file__), "logs")
-            # Создание директории, если она не существует
-            os.makedirs(logs_dir, exist_ok=True)
-
-            # Определение имени файла лога
-            log_filename = os.path.join(logs_dir, f"{log_type}_log.log")
-            # Открытие файла в режиме добавления и запись данных
-            with open(log_filename, "a", encoding="utf-8") as file:
-                file.write(CRest.wrap_data(data) + "\n")
-
-        except Exception as e:
-            print(f"Ошибка при логировании: {e}")
