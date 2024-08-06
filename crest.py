@@ -424,6 +424,11 @@ class CRest:
         client_id = env.str("C_REST_CLIENT_ID", None)
         client_secret = env.str("C_REST_CLIENT_SECRET", None)
         web_hook_url = env.str("C_REST_WEB_HOOK_URL", None)
+        server_url = env.str("SERVER_URL")
+
+        if not server_url:
+            result = {"error": "SERVER_URL must be set. Check your '.env' file."}
+            return result
 
         # Проверяем наличие необходимых параметров
         if (client_id and client_secret) or web_hook_url:

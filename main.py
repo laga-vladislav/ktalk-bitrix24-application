@@ -6,13 +6,22 @@ import uvicorn
 
 from crest import CRest
 
+from environs import Env
+
+# Инициализация Env
+env = Env()
+env.read_env(override=True)
+
 app = FastAPI()
 
 
 @app.post("/profile")
 async def show_profile_info():
-    result = CRest.call(method="profile",)
+    result = CRest.call(
+        method="profile",
+    )
     return result
+
 
 @app.post("/add_test_contact")
 async def add_contact():
@@ -42,8 +51,26 @@ async def add_contact():
     return result
 
 
+@app.post("/placement")
+async def placement():
+    result = CRest.call(
+        method="user.current",
+    )
+    return result
+
+
 @app.post("/install", response_class=HTMLResponse)
 async def install(request: Request):
+    # Встройка виджета в интерфейс
+    CRest.call(
+        method="placement.bind",
+        params={
+            "PLACEMENT": "CRM_CONTACT_DETAIL_ACTIVITY",
+            "HANDLER": env.str("SERVER_URL") + "/placement",
+            "TITLE": "myapp",
+        },
+    )
+
     # Извлечение параметров из URL
     query_params = dict(request.query_params)
 
