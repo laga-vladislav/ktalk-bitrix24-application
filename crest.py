@@ -288,23 +288,6 @@ class CRest:
         return arResult
 
     @staticmethod
-    def flatten_dict(d, parent_key='', sep=''):
-        items = []
-        for k, v in d.items():
-            new_key = f'{parent_key}{sep}[{k}]' if parent_key else k
-            if isinstance(v, dict):
-                items.extend(CRest.flatten_dict(v, new_key, sep=sep).items())
-            elif isinstance(v, list):
-                for i, item in enumerate(v):
-                    if isinstance(item, dict):
-                        items.extend(CRest.flatten_dict(item, f'{new_key}[{i}]', sep=sep).items())
-                    else:
-                        items.append((f'{new_key}[{i}]', item))
-            else:
-                items.append((new_key, v))
-        return dict(items)
-
-    @staticmethod
     def call_curl(params):
         """
         Выполняет HTTP-запрос с использованием библиотеки requests.
@@ -326,21 +309,16 @@ class CRest:
                 url = f"{arSettings['client_endpoint']}{params['method']}.{CRest.TYPE_TRANSPORT}"
                 if arSettings.get("is_web_hook") != "Y":
                     params["params"]["auth"] = arSettings["access_token"]
-            print(url)
-            print(params["params"])
-            
 
+            # flat_dict = CRest.flatten_dict(params["params"])
+            # sPostFields = urlencode(flat_dict, doseq=True)
 
-
-            flat_dict = CRest.flatten_dict(params["params"], sep='')
-            print(flat_dict)
-            sPostFields = urlencode(flat_dict, doseq=True)
-            print(sPostFields)
             # Выполнение POST-запроса
             try:
                 response = requests.post(
                     url,
-                    data=sPostFields,
+                    json=params["params"],
+                    # data=sPostFields,  # строчный запрос заменен блочным выше
                     headers={"User-Agent": f"Bitrix24 CRest Python {CRest.VERSION}"},
                 )
                 result = response.text
@@ -459,3 +437,58 @@ class CRest:
             }
 
         return result
+
+    # Претендент на удаление
+    @staticmethod
+    def flatten_dict(d, parent_key="", sep=""):
+        """
+        ## Пока не используется. Возможна как альтернатива блочному запросу.
+
+        Преобразует многомерный словарь в одномерный.
+
+        ### Описание:
+        Эта функция принимает вложенный словарь и преобразует его в одномерный,
+        где ключи формируются путем конкатенации всех уровней иерархии.
+        Полезно для преобразования сложных структур данных в формат,
+        подходящий для HTTP-запросов.
+
+        #### Аргументы:
+        - d (dict): Входной словарь, который может содержать вложенные словари и списки.
+        - parent_key (str): Ключ верхнего уровня для текущего уровня рекурсии.
+        Используется для построения ключей в результирующем словаре.
+        - sep (str): Разделитель, используемый между уровнями вложенности.
+
+        #### Возвращаемое значение:
+        - dict: Одномерный словарь, в котором все ключи представляют полные пути к значениям.
+        """
+
+        # Инициализируем список для хранения результирующих пар ключ-значение
+        items = []
+
+        # Перебираем все элементы словаря
+        for k, v in d.items():
+            # Формируем новый ключ, добавляя текущий к родительскому ключу
+            # Если это верхний уровень, используем только текущий ключ
+            new_key = f"{parent_key}{sep}[{k}]" if parent_key else k
+
+            # Если значение - это словарь, вызываем рекурсивно flatten_dict
+            if isinstance(v, dict):
+                items.extend(CRest.flatten_dict(v, new_key, sep=sep).items())
+
+            # Если значение - это список, обрабатываем каждый элемент
+            elif isinstance(v, list):
+                for i, item in enumerate(v):
+                    # Если элемент списка - словарь, вызываем рекурсивно flatten_dict
+                    if isinstance(item, dict):
+                        items.extend(
+                            CRest.flatten_dict(item, f"{new_key}[{i}]", sep=sep).items()
+                        )
+                    else:
+                        # Если элемент не словарь, добавляем его в список как есть
+                        items.append((f"{new_key}[{i}]", item))
+            else:
+                # Если значение - ни словарь, ни список, просто добавляем его в список
+                items.append((new_key, v))
+
+        # Преобразуем список пар ключ-значение в словарь и возвращаем
+        return dict(items)
