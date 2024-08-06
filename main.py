@@ -9,7 +9,12 @@ from crest import CRest
 app = FastAPI()
 
 
-@app.post("/index")
+@app.post("/profile")
+async def show_profile_info():
+    result = CRest.call(method="profile",)
+    return result
+
+@app.post("/add_test_contact")
 async def add_contact():
     class Contact(BaseModel):
         name: str
