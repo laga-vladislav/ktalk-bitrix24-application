@@ -1,10 +1,20 @@
 import json
+from typing import Any, Dict, Optional
+from pydantic import BaseModel
 
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
 app = FastAPI()
+
+
+class RequestData(BaseModel):
+    method: str
+    url: str
+    headers: Optional[Dict[str, Any]]
+    query_params: Optional[Dict[str, str]]
+    body: Optional[Dict[str, Any]]
 
 
 @app.middleware("http")
@@ -38,18 +48,27 @@ async def log_request_data(request: Request, call_next):
         form_data = await request.form()
 
         # Преобразование данных формы в словарь
-        data = dict(form_data)
+        body = dict(form_data)
 
         # Проверка и преобразование строки JSON в словарь
-        if "PLACEMENT_OPTIONS" in data:
+        if "PLACEMENT_OPTIONS" in body:
             try:
                 # Преобразование строки JSON в словарь
-                data["PLACEMENT_OPTIONS"] = json.loads(data["PLACEMENT_OPTIONS"])
+                body["PLACEMENT_OPTIONS"] = json.loads(body["PLACEMENT_OPTIONS"])
             except json.JSONDecodeError:
                 # Если JSON некорректный, оставить как есть
-                data["PLACEMENT_OPTIONS"] = data["PLACEMENT_OPTIONS"]
-        form_data_json = json.dumps(data, indent=4, ensure_ascii=False)
-        print(f"Тело запроса (Form Data):\n{form_data_json}\n")
+                body["PLACEMENT_OPTIONS"] = body["PLACEMENT_OPTIONS"]
+        form_body_json = json.dumps(body, indent=4, ensure_ascii=False)
+        print(f"Тело запроса (Form Data):\n{form_body_json}\n")
+
+
+    request.state.data = RequestData(
+        method=request.method,
+        url=str(request.url),
+        headers=headers,
+        query_params=query_params,
+        body=body,
+    )
 
     # Обрабатываем запрос
     response = await call_next(request)
@@ -88,10 +107,10 @@ async def install(request: Request):
 
 
 @app.post("/handler")
-async def handler():
+async def handler(request: Request):
     # Работа приложения
 
-    return "OK"
+    return request.state.data.body
 
 
 if __name__ == "__main__":

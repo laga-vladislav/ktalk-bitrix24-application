@@ -6,18 +6,17 @@ WEBHOOK_URL = "https://WEBHOOK_URL/crm.contact.add"
 
 # Данные для отправки
 payload = {
-    "fields":
-		{ 
-			"NAME": "Глеб", 
-			"SECOND_NAME": "Егорович", 
-			"LAST_NAME": "Титов", 
-			"OPENED": "Y", 
-			"ASSIGNED_BY_ID": 1, 
-			"TYPE_ID": "CLIENT",
-			"SOURCE_ID": "SELF",
-			"PHONE": [ { "VALUE": "555888", "VALUE_TYPE": "WORK" } ] 	
-		},
-	"params": { "REGISTER_SONET_EVENT": "Y" }	
+    "fields": {
+        "NAME": "Глеб",
+        "SECOND_NAME": "Егорович",
+        "LAST_NAME": "Титов",
+        "OPENED": "Y",
+        "ASSIGNED_BY_ID": 1,
+        "TYPE_ID": "CLIENT",
+        "SOURCE_ID": "SELF",
+        "PHONE": [{"VALUE": "555888", "VALUE_TYPE": "WORK"}],
+    },
+    "params": {"REGISTER_SONET_EVENT": "Y"},
 }
 
 # Отправляем POST-запрос
