@@ -47,24 +47,12 @@ async def log_request_data(request: Request, call_next):
     # Если тело запроса в формате Form Data
     elif content_type == "application/x-www-form-urlencoded":
         form_data = await request.form()
-        body = dict(form_data)
+        data = dict(form_data)
 
-        # Попытка декодирования специального параметра PLACEMENT_OPTIONS
-        if "PLACEMENT_OPTIONS" in body:
-            try:
-                body["PLACEMENT_OPTIONS"] = json.loads(body["PLACEMENT_OPTIONS"])
-            except json.JSONDecodeError:
-                pass
-
-        form_body_json = json.dumps(body, indent=4, ensure_ascii=False)
-        logger_message.append(f"Тело запроса (Form Data):\n{form_body_json}")
-
-    # Сохранение данных запроса в состоянии
-    request.state.data = RequestData(
-        headers=headers,
-        query_params=query_params,
-        body=body,
-    )
+        form_data_json = json.dumps(dumped_json(
+            data), indent=4, ensure_ascii=False)
+        
+        print(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
     # Логирование информации о запросе
     logger.info("\n".join(logger_message))
@@ -85,6 +73,23 @@ async def log_request_data(request: Request, call_next):
     logger_message=[]
     
     return response
+
+
+def dumped_json(data):
+    if isinstance(data, dict):
+        for key, value in data.items():
+            if isinstance(value, str):
+                try:
+                    decoded_value = json.loads(value)
+                    data[key] = dumped_json(decoded_value)
+                except json.JSONDecodeError:
+                    data[key] = value
+            else:
+                data[key] = dumped_json(value)
+    elif isinstance(data, list):
+        for index, item in enumerate(data):
+            data[index] = dumped_json(item)
+    return data
 
 
 @app.post("/install")
