@@ -1,4 +1,6 @@
 import json
+
+import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 
@@ -34,18 +36,18 @@ async def log_request_data(request: Request, call_next):
     elif content_type == "application/x-www-form-urlencoded":
         # Получение данных формы
         form_data = await request.form()
-        
+
         # Преобразование данных формы в словарь
         data = dict(form_data)
-        
+
         # Проверка и преобразование строки JSON в словарь
-        if 'PLACEMENT_OPTIONS' in data:
+        if "PLACEMENT_OPTIONS" in data:
             try:
                 # Преобразование строки JSON в словарь
-                data['PLACEMENT_OPTIONS'] = json.loads(data['PLACEMENT_OPTIONS'])
+                data["PLACEMENT_OPTIONS"] = json.loads(data["PLACEMENT_OPTIONS"])
             except json.JSONDecodeError:
                 # Если JSON некорректный, оставить как есть
-                data['PLACEMENT_OPTIONS'] = data['PLACEMENT_OPTIONS']
+                data["PLACEMENT_OPTIONS"] = data["PLACEMENT_OPTIONS"]
         form_data_json = json.dumps(data, indent=4, ensure_ascii=False)
         print(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
@@ -63,6 +65,8 @@ async def log_request_data(request: Request, call_next):
 
 @app.post("/install")
 async def install(request: Request):
+    # Установка приложения
+
     html_content = """
         <!DOCTYPE html>
         <html lang="ru">
@@ -85,12 +89,12 @@ async def install(request: Request):
 
 @app.post("/handler")
 async def handler():
+    # Работа приложения
+
     return "OK"
 
 
 if __name__ == "__main__":
-    import uvicorn
-
     uvicorn.run(
         app="check_requests_fastapi:app", host="127.0.0.1", port=8000, reload=True
     )
