@@ -46,17 +46,22 @@ async def log_request_data(request: Request, call_next):
 
     # Если тело запроса в формате Form Data
     elif content_type == "application/x-www-form-urlencoded":
-        form_data = await request.form()
-        data = dict(form_data)
+        body = await request.form()
+        body = dict(body)
+        body = dumped_json(body)
 
-        form_data_json = json.dumps(dumped_json(
-            data), indent=4, ensure_ascii=False)
-        
-        print(f"Тело запроса (Form Data):\n{form_data_json}\n")
+        form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
+
+        logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
     # Логирование информации о запросе
     logger.info("\n".join(logger_message))
-    logger_message=[]
+    logger_message = []
+
+    # Сохранение информации о запросе
+    request.state.data = RequestData(
+        headers=headers, query_params=query_params, body=body
+    )
 
     # Передача запроса обработчику
     response = await call_next(request)
@@ -70,8 +75,8 @@ async def log_request_data(request: Request, call_next):
 
     # Логирование информации о запросе
     logger.info("\n".join(logger_message))
-    logger_message=[]
-    
+    logger_message = []
+
     return response
 
 
