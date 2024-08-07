@@ -4,3 +4,4 @@ __pycache__
 .php
 settings.json
 app.log*
+abc-test.py
