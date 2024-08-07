@@ -55,7 +55,7 @@ async def log_request_data(request: Request, call_next):
         logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
     # Логирование информации о запросе
-    logger.info("\n".join(logger_message))
+    logger.debug("\n".join(logger_message))
     logger_message = []
 
     # Сохранение информации о запросе
@@ -74,7 +74,7 @@ async def log_request_data(request: Request, call_next):
     logger_message.append(f"Заголовки ответа:\n{response_headers_json}")
 
     # Логирование информации о запросе
-    logger.info("\n".join(logger_message))
+    logger.debug("\n".join(logger_message))
     logger_message = []
 
     return response
