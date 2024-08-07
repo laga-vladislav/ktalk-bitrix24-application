@@ -1,57 +1,77 @@
 import json
-
-import uvicorn
+from typing import Any, Dict, Optional
+from pydantic import BaseModel
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
+import uvicorn
+
+from logger.custom_logger import logger
 
 app = FastAPI()
 
 
+class RequestData(BaseModel):
+    headers: Optional[Dict[str, Any]]
+    query_params: Optional[Dict[str, str]]
+    body: Optional[Dict[str, Any]]
+
+
 @app.middleware("http")
 async def log_request_data(request: Request, call_next):
+    logger_message = []
+
     # Выводим метод запроса и URL
-    print(f"Метод запроса: {request.method}")
-    print(f"URL: {request.url}\n")
+    logger_message.append(f"Поступил {request.method} запрос на {request.url.path}")
+    logger_message.append(f"URL: {request.url}")
 
     # Выводим заголовки в формате JSON
     headers = dict(request.headers)
     headers_json = json.dumps(headers, indent=4, ensure_ascii=False)
-    print(f"Заголовки запроса:\n{headers_json}\n")
+    logger_message.append(f"Заголовки запроса:\n{headers_json}")
 
     # Выводим параметры запроса
     query_params = dict(request.query_params)
     query_params_json = json.dumps(query_params, indent=4, ensure_ascii=False)
-    print(f"Параметры запроса:\n{query_params_json}\n")
+    logger_message.append(f"Параметры запроса:\n{query_params_json}")
 
-    # Выводим тип содержимого тела запроса
+    # Тип содержимого тела запроса
     content_type = request.headers.get("content-type")
+    body = None
 
-    # Если тело запроса в формате JSON, выводим его
+    # Если тело запроса в формате JSON
     if content_type == "application/json":
         body = await request.json()
         body_json = json.dumps(body, indent=4, ensure_ascii=False)
-        print(f"Тело запроса (JSON):\n{body_json}\n")
+        logger_message.append(f"Тело запроса (JSON):\n{body_json}")
 
-    # Если тело запроса в формате x-www-form-urlencoded, выводим его
+    # Если тело запроса в формате Form Data
     elif content_type == "application/x-www-form-urlencoded":
         form_data = await request.form()
-
         data = dict(form_data)
 
         form_data_json = json.dumps(dumped_json(
             data), indent=4, ensure_ascii=False)
+        
         print(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
-    # Обрабатываем запрос
+    # Логирование информации о запросе
+    logger.info("\n".join(logger_message))
+    logger_message=[]
+
+    # Передача запроса обработчику
     response = await call_next(request)
 
-    # Выводим статус ответа и заголовки
-    print(f"Статус ответа: {response.status_code}")
+    # Логирование информации об ответе
+    logger_message.append(f"Ответ на запрос {request.url.path}")
+    logger_message.append(f"Статус ответа: {response.status_code}")
     response_headers = dict(response.headers)
-    response_headers_json = json.dumps(
-        response_headers, indent=4, ensure_ascii=False)
-    print(f"Заголовки ответа:\n{response_headers_json}")
+    response_headers_json = json.dumps(response_headers, indent=4, ensure_ascii=False)
+    logger_message.append(f"Заголовки ответа:\n{response_headers_json}")
 
+    # Логирование информации о запросе
+    logger.info("\n".join(logger_message))
+    logger_message=[]
+    
     return response
 
 
@@ -74,8 +94,6 @@ def dumped_json(data):
 
 @app.post("/install")
 async def install(request: Request):
-    # Установка приложения
-
     html_content = """
         <!DOCTYPE html>
         <html lang="ru">
@@ -97,10 +115,8 @@ async def install(request: Request):
 
 
 @app.post("/handler")
-async def handler():
-    # Работа приложения
-
-    return "OK"
+async def handler(request: Request):
+    return request.state.data.body
 
 
 if __name__ == "__main__":
