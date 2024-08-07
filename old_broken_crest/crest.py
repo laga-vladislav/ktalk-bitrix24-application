@@ -253,17 +253,16 @@ class CRest:
         }
 
         """
-        # Результат выполнения
         arResult = {}
 
-        # Проверяем, что входные данные являются словарем
-        if isinstance(arData, dict):
+        # Проверяем, что входные данные являются списком
+        if isinstance(arData, list):
             # Словарь для хранения команд и параметров для пакетного вызова
             arDataRest = {"cmd": {}}
             i = 0
 
             # Проходим по каждому запросу в входных данных
-            for key, data in arData.items():
+            for idx, data in enumerate(arData):
                 if "method" in data:
                     i += 1
                     # Проверяем, не превышает ли количество запросов в пакете лимит
@@ -273,8 +272,10 @@ class CRest:
                         params = data.get("params", {})
                         if params:
                             # Кодируем параметры для включения в URL
-                            method += "?" + urlencode(params)
-                        arDataRest["cmd"][key] = method
+                            params = CRest.flatten_dict(params)
+                            params_encoded = urlencode(params, doseq=True)
+                            method += "?" + params_encoded
+                        arDataRest["cmd"][f"rq{idx}"] = method
 
             # Если есть команды для выполнения
             if arDataRest["cmd"]:
@@ -298,7 +299,6 @@ class CRest:
         Возвращаемое значение:
         - dict: Результат выполнения запроса или информация об ошибке.
         """
-
         # Получение настроек приложения
         arSettings = CRest.get_app_settings()
         if arSettings is not False:
@@ -321,15 +321,16 @@ class CRest:
                     # data=sPostFields,  # строчный запрос заменен блочным выше
                     headers={"User-Agent": f"Bitrix24 CRest Python {CRest.VERSION}"},
                 )
+                print(f"params curl: {params["params"]}")
                 result = response.text
                 if CRest.TYPE_TRANSPORT == "xml" and params.get("this_auth") != "Y":
                     result = result
                 else:
-                    result = json.loads(response.text)
-
+                    result = json.loads(response.text) 
+                print(f"CURL result: {result}")
                 # Обработка ошибок в ответе
                 if "error" in result:
-                    if result["error"] == "expired_token" and not params.get(
+                    if result['error'] == "expired_token" and not params.get(
                         "this_auth"
                     ):
                         result = CRest.get_new_auth(params)
@@ -389,7 +390,7 @@ class CRest:
                     "refresh_token": arSettings["refresh_token"],
                 },
             }
-
+            print(f"это арсетинг {arParamsAuth}")
             # Выполнение запроса для получения нового токена
             newData = CRest.call_curl(arParamsAuth)
 
@@ -440,7 +441,6 @@ class CRest:
 
         return result
 
-    # Претендент на удаление
     @staticmethod
     def flatten_dict(d, parent_key="", sep=""):
         """

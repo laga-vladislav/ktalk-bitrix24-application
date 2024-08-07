@@ -1,10 +1,11 @@
+import os
 from urllib.parse import parse_qs
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, HTMLResponse
 from pydantic import BaseModel
 import uvicorn
-
-from crest import CRest
+import pandas as pd
+from old_broken_crest.crest import CRest
 
 from environs import Env
 
@@ -119,6 +120,36 @@ async def install(request: Request):
     return html_content
 
 
+@app.post("/add_test_contact_batch")
+async def process_clients():
+    clients_path = os.path.join(os.path.dirname(__file__), "many_clients.csv")
+    clients = csv_to_dict(clients_path, delimiter=';')
+    batch = []
+    step = 0
+    batch_size = CRest.BATCH_COUNT  # Размер пакета
+
+    for client in clients:
+        batch.append({
+            'method': 'crm.contact.add',
+            'params': {
+                'FIELDS': {
+                    'NAME': client.get('NAME'),
+                    'LAST_NAME': client.get('LAST_NAME'),
+                    'EMAIL': [{'VALUE': client.get('EMAIL'), 'VALUE_TYPE': 'WORK'}],
+                    'PHONE': [{'VALUE': client.get('PHONE'), 'VALUE_TYPE': 'WORK'}]
+                }
+            }
+        })
+
+        # Отправка пакета запросов если пакет достиг размера или это последний элемент
+        if (step + 1) % batch_size == 0 or (step + 1) == len(clients):
+            print(f"step {step}")
+            result = CRest.call_batch(batch)
+            print(result)
+            batch = []  # Очистка пакета
+        step += 1
+    return {'status': 'ok'}
+
 @app.get("/check_server")
 async def check_server():
     return CRest.check_server()
@@ -133,3 +164,14 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app="main:app", host="127.0.0.1", port=8000, reload=True)
+
+
+
+# Чтение CSV-файла и преобразование в список словарей
+def csv_to_dict(filename, delimiter=','):
+    try:
+        df = pd.read_csv(filename, delimiter=delimiter)
+        return df.to_dict(orient='records')
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return []
