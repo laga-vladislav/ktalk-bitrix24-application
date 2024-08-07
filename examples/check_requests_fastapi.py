@@ -6,6 +6,7 @@ from fastapi.responses import HTMLResponse
 import uvicorn
 
 from logger.custom_logger import logger
+from utils.parser import parse_form_data
 
 app = FastAPI()
 
@@ -48,7 +49,7 @@ async def log_request_data(request: Request, call_next):
     elif content_type == "application/x-www-form-urlencoded":
         body = await request.form()
         body = dict(body)
-        body = dumped_json(body)
+        body = parse_form_data(body)
 
         form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
 
@@ -78,23 +79,6 @@ async def log_request_data(request: Request, call_next):
     logger_message = []
 
     return response
-
-
-def dumped_json(data):
-    if isinstance(data, dict):
-        for key, value in data.items():
-            if isinstance(value, str):
-                try:
-                    decoded_value = json.loads(value)
-                    data[key] = dumped_json(decoded_value)
-                except json.JSONDecodeError:
-                    data[key] = value
-            else:
-                data[key] = dumped_json(value)
-    elif isinstance(data, list):
-        for index, item in enumerate(data):
-            data[index] = dumped_json(item)
-    return data
 
 
 @app.post("/install")
