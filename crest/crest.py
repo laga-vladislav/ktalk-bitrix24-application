@@ -11,7 +11,7 @@ class CRestBitrix24:
         client_secret: str | None,
         batch_size: int = 50,
     ) -> None:
-        if not (client_id and client_secret) and not client_webhook:
+        if not (client_id and client_secret) or not client_webhook:
             raise ValueError(
                 "Необходимо задать client_webhook, либо client_id и client_secret"
             )
