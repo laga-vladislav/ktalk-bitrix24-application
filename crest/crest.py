@@ -1,6 +1,6 @@
 from httpx import AsyncClient
 from typing import Any
-from .models import CallRequest
+from crest.models import CallRequest
 
 
 class CRestBitrix24:
@@ -21,9 +21,22 @@ class CRestBitrix24:
         self.BATCH_SIZE = batch_size
 
     async def call(self, request: CallRequest) -> Any:
+        '''
+        Выполняет запрос к Bitrix24
+        
+        :param request: Объект CallRequest (запрос)
+        :return: Ответ Bitrix24
+        '''
         return await self._call_curl(request)
 
-    async def call_batch(self, request_batch: list[CallRequest]):
+    async def call_batch(self, request_batch: list[CallRequest], halt=False):
+        '''
+        Выполняет пакетный запрос к Bitrix24
+        
+        :param request_batch: Список объектов CallRequest (массив запросов)
+        :param halt: Определяет прерывать ли последовательность запросов в случае ошибки
+        :return: список ответов Bitrix24
+        '''
         responses = []
 
         batch_size = self.BATCH_SIZE
@@ -32,7 +45,7 @@ class CRestBitrix24:
         for start in range(0, total_requests, batch_size):
             # пакет с методом batch
             batch_CallRequest = CallRequest(method="batch")
-            parameters = {"halt": 0, "cmd": {}}
+            parameters = {"halt": int(halt), "cmd": {}}
 
             # Добавляем параметры в пакет выше
             for count in range(batch_size):

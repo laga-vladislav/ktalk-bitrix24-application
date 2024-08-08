@@ -19,7 +19,7 @@ CREST = CRestBitrix24(
 
 async def main():
     call_batches = []
-    for i in range(100):
+    for i in range(1):
         call_batches.append(
             CallRequest(
                 method="crm.contact.add", params={"fields": {"NAME": f"User{i}"}}
@@ -27,6 +27,10 @@ async def main():
         )
 
     result = await CREST.call_batch(call_batches)
+    print(json.dumps(result, indent=4, ensure_ascii=False))
+
+    call_request = CallRequest(method="crm.contact.list")
+    result = await CREST.call(call_request)
     print(json.dumps(result, indent=4, ensure_ascii=False))
 
 
