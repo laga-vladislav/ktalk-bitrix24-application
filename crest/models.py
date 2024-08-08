@@ -8,6 +8,10 @@ class CallRequest(BaseModel):
     params: Dict = {}
 
     def form_data(self, convention="%s"):
+        """
+        Возвращает преобразованные параметры (qs) в виде строки
+        Пример: FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
+        """
         return self._format_params_recursion(self.params, convention)
 
     def _format_params_recursion(self, params, convention="%s"):
@@ -17,13 +21,14 @@ class CallRequest(BaseModel):
         output = []
         for key, value in params.items():
             if isinstance(value, dict):
-                output.append(self._format_params_recursion(
-                    value, convention % key + "[%s]"))
+                output.append(
+                    self._format_params_recursion(value, convention % key + "[%s]")
+                )
             elif isinstance(value, list):
-                new_params = {str(i): element for i,
-                              element in enumerate(value)}
-                output.append(self._format_params_recursion(
-                    new_params, convention % key + "[%s]"))
+                new_params = {str(i): element for i, element in enumerate(value)}
+                output.append(
+                    self._format_params_recursion(new_params, convention % key + "[%s]")
+                )
             else:
                 key = urllib.parse.quote(key)
                 val = urllib.parse.quote(str(value))
@@ -31,6 +36,11 @@ class CallRequest(BaseModel):
 
         return "&".join(output)
 
+    # crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
     def get_path(self):
-        url = f'{self.method}?{self.form_data()}'
+        """
+        Возвращает путь, сформированный из метода и обработанных параметров (qs)
+        Пример: FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
+        """
+        url = f"{self.method}?{self.form_data()}"
         return url
