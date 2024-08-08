@@ -45,6 +45,9 @@ class LogRequestDataMiddleware(BaseHTTPMiddleware):
             form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
             logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}")
 
+        else:
+            logger_message.append(f"Тело запроса:\n{body}")
+            
         # Логирование информации о запросе
         logger.debug("\n".join(logger_message))
         logger_message = []
