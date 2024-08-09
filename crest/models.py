@@ -4,7 +4,8 @@ from typing import Dict
 
 
 class CallRequest(BaseModel):
-    method: str
+    domain: str | None = None
+    method: str | None = None
     params: Dict = {}
 
     def form_data(self, convention="%s"):
@@ -22,12 +23,15 @@ class CallRequest(BaseModel):
         for key, value in params.items():
             if isinstance(value, dict):
                 output.append(
-                    self._format_params_recursion(value, convention % key + "[%s]")
+                    self._format_params_recursion(
+                        value, convention % key + "[%s]")
                 )
             elif isinstance(value, list):
-                new_params = {str(i): element for i, element in enumerate(value)}
+                new_params = {str(i): element for i,
+                              element in enumerate(value)}
                 output.append(
-                    self._format_params_recursion(new_params, convention % key + "[%s]")
+                    self._format_params_recursion(
+                        new_params, convention % key + "[%s]")
                 )
             else:
                 key = urllib.parse.quote(key)
@@ -37,6 +41,11 @@ class CallRequest(BaseModel):
         return "&".join(output)
 
     # crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
+    def get_full_url(self):
+        if not self.domain:
+            raise ValueError("Домен не опеределен")
+        return f"{self.domain}{self.get_path()}"
+
     def get_path(self):
         """
         Возвращает путь, сформированный из метода и обработанных параметров (qs)
