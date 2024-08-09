@@ -51,11 +51,6 @@ class CRestBitrix24:
         batch_size = self.BATCH_SIZE
         total_requests = len(request_batch)
 
-        if self.mode == "webhook":
-            request_batch.domain = self.CLIENT_WEBHOOK
-        elif self.mode == "application":   
-            pass
-
         for start in range(0, total_requests, batch_size):
             # пакет с методом batch
             batch_CallRequest = CallRequest(method="batch")
@@ -70,7 +65,7 @@ class CRestBitrix24:
 
             # Назначение параметров запроса и отправка
             batch_CallRequest.params = parameters
-            response = await self._call_curl(batch_CallRequest)
+            response = await self.call(batch_CallRequest)
             responses.append(response)
 
         return responses
