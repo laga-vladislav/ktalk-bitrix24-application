@@ -43,7 +43,7 @@ class CallRequest(BaseModel):
     # crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
     def get_full_url(self):
         if not self.domain:
-            raise ValueError("Домен не опеределен")
+            raise ValueError("Домен не указан")
         return f"{self.domain}{self.get_path()}"
 
     def get_path(self):
