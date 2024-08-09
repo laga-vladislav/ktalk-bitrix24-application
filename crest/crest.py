@@ -31,6 +31,11 @@ class CRestBitrix24:
         :param request: Объект CallRequest (запрос)
         :return: Ответ Bitrix24
         '''
+        if self.mode == "webhook":
+            request.domain = self.CLIENT_WEBHOOK
+        elif self.mode == "application":   
+            pass
+        
         return await self._call_curl(request)
 
     async def call_batch(self, request_batch: list[CallRequest], halt=False):
@@ -45,6 +50,11 @@ class CRestBitrix24:
 
         batch_size = self.BATCH_SIZE
         total_requests = len(request_batch)
+
+        if self.mode == "webhook":
+            request_batch.domain = self.CLIENT_WEBHOOK
+        elif self.mode == "application":   
+            pass
 
         for start in range(0, total_requests, batch_size):
             # пакет с методом batch
@@ -66,7 +76,7 @@ class CRestBitrix24:
         return responses
 
     async def _call_curl(self, request: CallRequest) -> Any:
-        url = f"{self.CLIENT_WEBHOOK}/{request.get_path()}"
+        url = request.get_full_url()
 
         async with AsyncClient() as client:
             response = await client.post(url=url)
