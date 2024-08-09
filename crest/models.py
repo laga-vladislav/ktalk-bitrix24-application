@@ -4,9 +4,9 @@ from typing import Dict
 
 
 class CallRequest(BaseModel):
-    domain: str = ""
-    method: str = ""
-    params: Dict = {}
+    domain: str = "" # пример https://oauth.bitrix.info/oauth/token/
+    method: str = "" # пример crm.contact.add
+    params: Dict = {} # пример {"FIELDS[NAME]": "test", "FIELDS[LAST_NAME]": "test"}
 
     def form_data(self, convention="%s"):
         """
@@ -42,6 +42,12 @@ class CallRequest(BaseModel):
 
     # crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
     def get_full_url(self):
+        '''
+        Возвращает полный URL запроса.
+
+        :return: полный URL запроса
+        Пример: https://XXXX.bitrix24.ru/...../crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
+        '''
         if not self.domain:
             raise ValueError("Домен не указан")
         return f"{self.domain}{self.get_path()}"
@@ -49,7 +55,7 @@ class CallRequest(BaseModel):
     def get_path(self):
         """
         Возвращает путь, сформированный из метода и обработанных параметров (qs)
-        Пример: FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
+        Пример: crm.contact.add?FIELDS[NAME]=test&FIELDS[LAST_NAME]=test
         """
         url = f"{self.method}?{self.form_data()}"
         return url
