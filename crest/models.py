@@ -4,8 +4,8 @@ from typing import Dict
 
 
 class CallRequest(BaseModel):
-    domain: str | None = None
-    method: str | None = None
+    domain: str = ""
+    method: str = ""
     params: Dict = {}
 
     def form_data(self, convention="%s"):
