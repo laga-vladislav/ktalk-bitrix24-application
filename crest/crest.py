@@ -11,10 +11,14 @@ class CRestBitrix24:
         client_secret: str | None,
         batch_size: int = 50,
     ) -> None:
-        if not (client_id and client_secret) or not client_webhook:
-            raise ValueError(
-                "Необходимо задать client_webhook, либо client_id и client_secret"
-            )
+        
+        if client_id and client_secret:
+            self.mode = "application"
+        elif client_webhook:
+            self.mode = "webhook"
+        else:
+            raise ValueError("Необходимо задать client_id и client_secret, либо client_webhook")
+        
         self.CLIENT_WEBHOOK = client_webhook
         self.CLIENT_ID = client_id
         self.CLIENT_SECRET = client_secret
@@ -69,25 +73,22 @@ class CRestBitrix24:
             return response.json()
 
 
-# async def refresh_token(client_id, client_secret, refresh_token):
-#     """
-#     Метод обновляет токен авторизации.
+    # async def refresh_token(self, refresh_token):
+    #     """
+    #     Метод обновляет токен авторизации.
 
-#     :param client_id: код приложения, получаемый в партнерском кабинете при регистрации приложения
-#                       либо на портале в случае локального приложения.
-#     :param client_secret: секретный ключ приложения, получаемый в партнерском кабинете при регистрации
-#                           приложения либо на портале в случае локального приложения.
-#     :param refresh_token: значение сохраненного токена продления авторизации.
-#     :return: ответ от сервера в формате JSON.
-#     """
-#     # URL для запроса обновления токена
-#     url = "https://oauth.bitrix.info/oauth/token/"
-#     payload = {
-#         "grant_type": "refresh_token",  # тип авторизационных данных
-#         "client_id": client_id,  # код приложения
-#         "client_secret": client_secret,  # секретный ключ приложения
-#         "refresh_token": refresh_token  # значение сохраненного токена продления авторизации
-#     }
-#     async with AsyncClient() as client:
-#         response = client.post(url, data=payload)
-#         return response.json()
+    #     :param refresh_token: значение сохраненного токена продления авторизации.
+    #     :return: ответ от сервера в формате JSON.
+    #     """
+    #     # URL для запроса обновления токена
+    #     url = "https://oauth.bitrix.info/oauth/token/"
+    #     payload = {
+    #         "grant_type": "refresh_token",  # тип авторизационных данных
+    #         "client_id": self.CLIENT_ID,  # код приложения
+    #         "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
+    #         "refresh_token": refresh_token  # значение сохраненного токена продления авторизации
+    #     }
+
+    #     callRequest = CallRequest(method="POST")
+        
+    #     response = await self._call_curl(callRequest)
