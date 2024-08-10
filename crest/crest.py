@@ -1,3 +1,4 @@
+from json import JSONDecodeError
 from httpx import AsyncClient
 from typing import Any
 from crest.models import CallRequest
@@ -6,9 +7,9 @@ from crest.models import CallRequest
 class CRestBitrix24:
     def __init__(
         self,
-        client_webhook: str | None,
-        client_id: str | None,
-        client_secret: str | None,
+        client_webhook: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
         batch_size: int = 50,
     ) -> None:
         
@@ -80,10 +81,16 @@ class CRestBitrix24:
         :return: возвращает ответ от Bitrix24 в формате json.
         """
         url = request.get_full_url()
-
-        async with AsyncClient() as client:
-            response = await client.post(url=url)
-            return response.json()
+        try:
+            async with AsyncClient() as client:
+                response = await client.post(url=url)
+                
+                response.raise_for_status()
+                return response.json()
+                    
+        except JSONDecodeError:
+            # НАПИСАТЬ ТУТ придумаать ошибку чо как и почему
+            return response
 
 
     async def refresh_token(self, refresh_token: str):
@@ -94,7 +101,7 @@ class CRestBitrix24:
         :return: ответ от сервера в формате JSON.
         """
         if self.mode != "application":
-            raise ValueError("Метод refresh_token доступен только для приложений")
+            raise ValueError("Метод доступен только для приложений")
 
         # URL для запроса обновления токена
         url = "https://oauth.bitrix.info/oauth/token/"
@@ -103,6 +110,31 @@ class CRestBitrix24:
             "client_id": self.CLIENT_ID,  # код приложения
             "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
             "refresh_token": refresh_token  # значение сохраненного токена продления авторизации
+        }
+
+        callRequest = CallRequest(domain=url, params=payload)
+        
+        response = await self._call_curl(callRequest)
+        return(response)
+    
+    async def get_token(self, code: str):
+        """
+        Метод выдает токен авторизации. Работает только для приложений.
+        Выдает и refresh_token, и access_token.
+
+        :param code: код для получения токена.
+        :return: ответ от сервера в формате JSON.
+        """
+        if self.mode != "application":
+            raise ValueError("Метод доступен только для приложений")
+
+        # URL для запроса обновления токена
+        url = "https://oauth.bitrix.info/oauth/token/"
+        payload = {
+            "grant_type": "authorization_code",  # тип авторизационных данных
+            "client_id": self.CLIENT_ID,  # код приложения
+            "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
+            "code": code  # код для получения токена
         }
 
         callRequest = CallRequest(domain=url, params=payload)
