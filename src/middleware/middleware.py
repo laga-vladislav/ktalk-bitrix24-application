@@ -7,6 +7,8 @@ from src.utils.parser import parse_form_data
 
 class LogRequestDataMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
+        raw_body = await request.body()
+
         logger_message = []
 
         # Выводим метод запроса и URL
@@ -34,7 +36,7 @@ class LogRequestDataMiddleware(BaseHTTPMiddleware):
             body = await request.json()
 
             body_json = json.dumps(body, indent=4, ensure_ascii=False)
-            logger_message.append(f"Тело запроса (JSON):\n{body_json}")
+            logger_message.append(f"Тело запроса (JSON):\n{body_json}\n")
 
         # Если тело запроса в формате Form Data
         elif content_type == "application/x-www-form-urlencoded":
@@ -43,11 +45,11 @@ class LogRequestDataMiddleware(BaseHTTPMiddleware):
             body = parse_form_data(body)
 
             form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
-            logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}")
+            logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}\n")
 
         else:
-            logger_message.append(f"Тело запроса:\n{body}")
-            
+            logger_message.append(f"Тело запроса:\n{body}\n")
+
         # Логирование информации о запросе
         logger.debug("\n".join(logger_message))
         logger_message = []
@@ -57,6 +59,7 @@ class LogRequestDataMiddleware(BaseHTTPMiddleware):
         request.state.query_params = query_params
         request.state.body = body
 
+        request._body = raw_body
         # Передача запроса обработчику
         response = await call_next(request)
 

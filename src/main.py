@@ -1,4 +1,5 @@
-from fastapi import Depends, FastAPI, Query, Request
+import json
+from fastapi import Depends, FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse
 
 from crest.crest import CRestBitrix24
@@ -40,42 +41,47 @@ async def install(request: Request):
 
 
 @app.post("/handler")
-async def handler(request: Request):
-    return request.state.body
+async def handler(
+    request: Request,
+    CRest: CRestBitrix24 = Depends(get_crest),
+    refresh_token: str = Form(..., alias="REFRESH_ID"),
+):
+    result = await CRest.refresh_token(refresh_token)
+    print(json.dumps(result, indent=4, ensure_ascii=False))
 
 
-@app.get("/handler")
+@app.get("/oauth_callback")
 async def aouth_get_code(
     CRest: CRestBitrix24 = Depends(get_crest), code: str = Query(...)
 ):
     # можно брать code из middleware
     # code = request.state.query_params.get('code')
     result = await CRest.get_auth(code=code)
-    # parameters = {
-    #     "filter": {"NAME": "User40"},
-    #     "order": {"NAME": "DESC"},
-    # }
-    # callRequest = CallRequest(method="crm.contact.list", params=parameters)
+    parameters = {
+        "filter": {"NAME": "User40"},
+        "order": {"NAME": "DESC"},
+    }
+    callRequest = CallRequest(method="profile", params=parameters)
 
-    # result = await CRest.call(
-    #     callRequest,
-    #     access_token=result["access_token"],
-    #     client_endpoint=result["client_endpoint"],
-    # )
-    # return result
-
-    call_batches = []
-    for i in range(200):
-        call_batches.append(
-            CallRequest(
-                method="crm.contact.add", params={"fields": {"NAME": f"UserNew{i}"}}
-            )
-        )
-
-    result = await CRest.call_batch(
-        call_batches,
-        client_endpoint=result["client_endpoint"],
+    result = await CRest.call(
+        callRequest,
         access_token=result["access_token"],
+        client_endpoint=result["client_endpoint"],
     )
-
     return result
+
+    # call_batches = []
+    # for i in range(200):
+    #     call_batches.append(
+    #         CallRequest(
+    #             method="crm.contact.add", params={"fields": {"NAME": f"UserNew{i}"}}
+    #         )
+    #     )
+
+    # result = await CRest.call_batch(
+    #     call_batches,
+    #     client_endpoint=result["client_endpoint"],
+    #     access_token=result["access_token"],
+    # )
+
+    # return result
