@@ -1,4 +1,3 @@
-from json import JSONDecodeError
 from httpx import AsyncClient
 from typing import Any
 from crest.models import CallRequest
@@ -12,44 +11,47 @@ class CRestBitrix24:
         client_secret: str | None = None,
         batch_size: int = 50,
     ) -> None:
-        
         if client_id and client_secret:
             self.mode = "application"
         elif client_webhook:
             self.mode = "webhook"
         else:
-            raise ValueError("Необходимо задать client_id и client_secret, либо client_webhook")
-        
+            raise ValueError(
+                "Необходимо задать client_id и client_secret, либо client_webhook"
+            )
+
         self.CLIENT_WEBHOOK = client_webhook
         self.CLIENT_ID = client_id
         self.CLIENT_SECRET = client_secret
         self.BATCH_SIZE = batch_size
 
-    async def call(self, request: CallRequest, client_endpoint: str = "", auth_token: str = "") -> Any:
-        '''
-        Выполняет запрос к Bitrix24
-        Происходит проверка, какой режим активирован, и выставляется соответственный адрес
-        
-        :param request: Объект CallRequest (запрос)
-        :return: Ответ Bitrix24
-        '''
+    async def call(
+        self,
+        request: CallRequest,
+        client_endpoint: str = None,
+        access_token: str = None,
+    ) -> Any:
         if self.mode == "webhook":
-            request.domain = self.CLIENT_WEBHOOK
-        elif self.mode == "application":   
-            request.domain = client_endpoint
-            request.params["auth"] = auth_token
+            client_endpoint = self.CLIENT_WEBHOOK
+        elif self.mode == "application" and not access_token:
+            raise ValueError(
+                "В режиме работы с приложениями необходимо задать access_token"
+            )
+        elif self.mode == "application" and not client_endpoint:
+            raise ValueError(
+                "В режиме работы с приложениями необходимо задать client_endpoint"
+            )
 
-        response = await self._call_curl(request)
+        response = await self._call_curl(request, client_endpoint, access_token)
         return response
 
-    async def call_batch(self, request_batch: list[CallRequest], halt=False):
-        '''
-        Выполняет пакетный запрос к Bitrix24
-        
-        :param request_batch: Список объектов CallRequest (массив запросов)
-        :param halt: Определяет прерывать ли последовательность запросов в случае ошибки
-        :return: список ответов Bitrix24
-        '''
+    async def call_batch(
+        self,
+        request_batch: list[CallRequest],
+        halt: bool = False,
+        client_endpoint: str = None,
+        access_token: str = None,
+    ) -> Any:
         responses = []
 
         batch_size = self.BATCH_SIZE
@@ -69,38 +71,32 @@ class CRestBitrix24:
 
             # Назначение параметров запроса и отправка
             batch_CallRequest.params = parameters
-            response = await self.call(batch_CallRequest)
+            response = await self.call(batch_CallRequest, client_endpoint, access_token)
             responses.append(response)
 
         return responses
 
-    async def _call_curl(self, request: CallRequest) -> Any:
-        """
-        Выполняет запрос к Bitrix24 по указанному адресу и методу.
+    async def _call_curl(
+        self, request: CallRequest, client_endpoint: str, access_token: str = None
+    ) -> Any:
+        copy_request = request.model_copy()
 
-        :param request: Объект CallRequest, содержащий информацию о запросе.
-        :return: возвращает ответ от Bitrix24 в формате json.
-        """
-        url = request.get_full_url()
+        if access_token:
+            copy_request.params["auth"] = access_token
+
+        url = client_endpoint + copy_request.get_path()
         try:
             async with AsyncClient() as client:
                 response = await client.post(url=url)
-                
+
                 response.raise_for_status()
                 return response.json()
-                    
-        except JSONDecodeError:
+
+        except Exception:
             # НАПИСАТЬ ТУТ придумаать ошибку чо как и почему
             return response
 
-
     async def refresh_token(self, refresh_token: str):
-        """
-        Метод обновляет токен авторизации. Работает только для приложений.
-
-        :param refresh_token: значение сохраненного токена продления авторизации.
-        :return: ответ от сервера в формате JSON.
-        """
         if self.mode != "application":
             raise ValueError("Метод доступен только для приложений")
 
@@ -110,35 +106,28 @@ class CRestBitrix24:
             "grant_type": "refresh_token",  # тип авторизационных данных
             "client_id": self.CLIENT_ID,  # код приложения
             "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
-            "refresh_token": refresh_token  # значение сохраненного токена продления авторизации
+            "refresh_token": refresh_token,  # значение сохраненного токена продления авторизации
         }
 
-        callRequest = CallRequest(domain=url, params=payload)
-        
-        response = await self._call_curl(callRequest)
-        return(response)
-    
-    async def get_auth(self, code: str):
-        """
-        Метод выдает данные авторизации. Работает только для приложений.
-        Выдает и refresh_token, и access_token.
+        callRequest = CallRequest(params=payload)
 
-        :param code: код для получения авторизационных данных.
-        :return: ответ от сервера в формате JSON.
-        """
+        response = await self._call_curl(callRequest, client_endpoint=url)
+        return response
+
+    async def get_auth(self, code: str):
         if self.mode != "application":
             raise ValueError("Метод доступен только для приложений")
 
-        # URL для запроса обновления токена
+        # URL для запроса получения авторизации
         url = "https://oauth.bitrix.info/oauth/token/"
         payload = {
             "grant_type": "authorization_code",  # тип авторизационных данных
             "client_id": self.CLIENT_ID,  # код приложения
             "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
-            "code": code  # код для получения токена
+            "code": code,  # код для получения токена
         }
 
-        callRequest = CallRequest(domain=url, params=payload)
-        
-        response = await self._call_curl(callRequest)
-        return(response)
+        callRequest = CallRequest(params=payload)
+
+        response = await self._call_curl(callRequest, client_endpoint=url)
+        return response
