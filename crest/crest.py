@@ -25,7 +25,7 @@ class CRestBitrix24:
         self.CLIENT_SECRET = client_secret
         self.BATCH_SIZE = batch_size
 
-    async def call(self, request: CallRequest) -> Any:
+    async def call(self, request: CallRequest, client_endpoint: str = "", auth_token: str = "") -> Any:
         '''
         Выполняет запрос к Bitrix24
         Происходит проверка, какой режим активирован, и выставляется соответственный адрес
@@ -36,7 +36,8 @@ class CRestBitrix24:
         if self.mode == "webhook":
             request.domain = self.CLIENT_WEBHOOK
         elif self.mode == "application":   
-            pass
+            request.domain = client_endpoint
+            request.params["auth"] = auth_token
 
         response = await self._call_curl(request)
         return response
@@ -117,12 +118,12 @@ class CRestBitrix24:
         response = await self._call_curl(callRequest)
         return(response)
     
-    async def get_token(self, code: str):
+    async def get_auth(self, code: str):
         """
-        Метод выдает токен авторизации. Работает только для приложений.
+        Метод выдает данные авторизации. Работает только для приложений.
         Выдает и refresh_token, и access_token.
 
-        :param code: код для получения токена.
+        :param code: код для получения авторизационных данных.
         :return: ответ от сервера в формате JSON.
         """
         if self.mode != "application":

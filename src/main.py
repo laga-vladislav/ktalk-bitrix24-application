@@ -42,9 +42,17 @@ async def install(request: Request):
 async def handler(request: Request):
     return request.state.body
 
-@app.get("/auth_callback")
-async def aouth_get_code(request: Request, CRest: CRestBitrix24 = Depends(get_crest), code: str = Query(None)):
+@app.get("/handler")
+async def aouth_get_code(CRest: CRestBitrix24 = Depends(get_crest), code: str = Query(...)):
     # можно брать code из middleware
     # code = request.state.query_params.get('code')
-    result = await CRest.get_token(code=code)
+    result = await CRest.get_auth(code=code)
+    parameters = {
+        "filter": {"NAME":"User40"},
+        "order": { "NAME": "DESC" },
+    }
+    callRequest = CallRequest(method="crm.contact.list", params=parameters)
+
+    result = await CRest.call(callRequest, client_endpoint=result["client_endpoint"], auth_token=result["access_token"])
+
     return result
