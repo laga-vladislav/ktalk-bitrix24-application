@@ -3,12 +3,14 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse
 
 from crest.crest import CRestBitrix24
-from crest.models import AuthTokens
+from crest.models import AuthTokens, CallRequest
 from src.db.database import get_session
-from src.db.schemes import PortalScheme
+from src.db.schemes import PortalScheme, UserScheme, AuthScheme
 from src.router.utils import get_crest
 
+from src.logger.custom_logger import logger
 router = APIRouter()
+
 
 @router.post("/install")
 async def install(
@@ -34,6 +36,7 @@ async def install(
         </body>
         </html>
     """
+    
     # Получаем обширную информацию с новыми токенами
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
 
@@ -41,23 +44,41 @@ async def install(
         access_token=new_auth["access_token"], refresh_token=new_auth["refresh_token"]
     )
 
-    portal = await session.get(PortalScheme, new_auth["member_id"])
+    params = {
+        "PLACEMENT": "CRM_DEAL_DETAIL_ACTIVITY",
+        "HANDLER": str(request.base_url) + "placement/crm_deal",
+        "TITLE": "КТолк",
+    }
+    callreq = CallRequest(method="placement.bind", params=params)
 
-    if portal:
-        portal.endpoint = new_auth["client_endpoint"]
-        portal.scope = new_auth["scope"]+"UPDATEDONLY"
+    result = await CRest.call(
+        callreq, client_endpoint=new_auth["client_endpoint"], auth_tokens=admin_tokens
+    )
+
+    is_done = result.get("result")
+    if is_done:
+        logger.info("Установка виджетов прошла успешно")
     else:
-        # Добавляем в базу
-        portal = PortalScheme(
-                member_id=new_auth["member_id"],
-                endpoint=new_auth["client_endpoint"],
-                scope=new_auth["scope"]+"CREATEDONLY",
-            )
-        session.add(portal)
-    await session.commit()
+        logger.info("Виджеты были уже установлены")
 
 
+    # # Если портал уже существует, то обновляем его адрес и scope.
+    # # Если портал не существует, то добавляем его
+    # portal = await session.get(PortalScheme, new_auth["member_id"])
+    # if portal:
+    #     portal.endpoint = new_auth["client_endpoint"]
+    #     portal.scope = new_auth["scope"]
+    # else:
+    #     portal = PortalScheme(
+    #         member_id=new_auth["member_id"],
+    #         endpoint=new_auth["client_endpoint"],
+    #         scope=new_auth["scope"] + "CREATEDONLY",
+    #     )
+    #     session.add(portal)
+    # await session.commit()
 
+    # # ВСЕ, ПОКА НЕ РАБОТАЕМ С БД
+    # # НУЖНО ПЕРЕРАБОТАТЬ ТАБЛИЦЫ!
 
     return HTMLResponse(content=html_content, status_code=200)
 

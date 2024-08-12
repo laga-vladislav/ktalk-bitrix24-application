@@ -1,3 +1,7 @@
+# ПОКА НЕ ИСПОЛЬЗУЕТСЯ
+# И НЕ ПЛАНИРУЕТСЯ
+# КОД ДЛЯ ПОЛНОГО ПРОТОКОЛА OAUTH2
+
 from fastapi import APIRouter, Depends, Query
 
 from crest.crest import CRestBitrix24
@@ -5,6 +9,7 @@ from crest.models import CallRequest
 from src.router.utils import get_crest
 
 router = APIRouter()
+
 
 @router.get("/oauth_callback")
 async def aouth_get_code(

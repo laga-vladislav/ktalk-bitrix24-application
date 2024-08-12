@@ -1,6 +1,6 @@
-from httpx import AsyncClient
+from httpx import AsyncClient, HTTPStatusError
 from typing import Any
-from crest.models import CallRequest
+from crest.models import CallRequest, AuthTokens
 
 
 class CRestBitrix24:
@@ -29,20 +29,20 @@ class CRestBitrix24:
         self,
         request: CallRequest,
         client_endpoint: str = None,
-        access_token: str = None,
+        auth_tokens: AuthTokens = None,
     ) -> Any:
         if self.mode == "webhook":
             client_endpoint = self.CLIENT_WEBHOOK
-        elif self.mode == "application" and not access_token:
+        elif self.mode == "application" and not auth_tokens:
             raise ValueError(
-                "В режиме работы с приложениями необходимо задать access_token"
+                "В режиме работы с приложениями необходимо задать токены доступа"
             )
         elif self.mode == "application" and not client_endpoint:
             raise ValueError(
                 "В режиме работы с приложениями необходимо задать client_endpoint"
             )
 
-        response = await self._call_curl(request, client_endpoint, access_token)
+        response = await self._call_curl(request, client_endpoint, auth_tokens)
         return response
 
     async def call_batch(
@@ -50,7 +50,7 @@ class CRestBitrix24:
         request_batch: list[CallRequest],
         halt: bool = False,
         client_endpoint: str = None,
-        access_token: str = None,
+        auth_tokens: AuthTokens = None,
     ) -> Any:
         responses = []
 
@@ -71,30 +71,39 @@ class CRestBitrix24:
 
             # Назначение параметров запроса и отправка
             batch_CallRequest.params = parameters
-            response = await self.call(batch_CallRequest, client_endpoint, access_token)
+            response = await self.call(batch_CallRequest, client_endpoint, auth_tokens)
             responses.append(response)
 
         return responses
 
     async def _call_curl(
-        self, request: CallRequest, client_endpoint: str, access_token: str = None
+        self, request: CallRequest, client_endpoint: str, auth_tokens: AuthTokens = None
     ) -> Any:
         copy_request = request.model_copy()
 
-        if access_token:
-            copy_request.params["auth"] = access_token
+        if auth_tokens:
+            copy_request.params["auth"] = auth_tokens.access_token
 
-        url = client_endpoint + copy_request.get_path()
-        try:
+        async def perform_request():
+            url = client_endpoint + copy_request.get_path()
+
             async with AsyncClient() as client:
                 response = await client.post(url=url)
-
                 response.raise_for_status()
                 return response.json()
 
-        except Exception:
-            # НАПИСАТЬ ТУТ придумаать ошибку чо как и почему
-            return response
+        try:
+            return await perform_request()
+
+        except HTTPStatusError as e:
+            if e.response.json().get("error") == "expired_token":
+                new_auth = await self.refresh_token(
+                    refresh_token=auth_tokens.refresh_token
+                )
+                copy_request.params["auth"] = new_auth["access_token"]
+                return await perform_request()
+            else:
+                return e.response.json()
 
     async def refresh_token(self, refresh_token: str):
         if self.mode != "application":

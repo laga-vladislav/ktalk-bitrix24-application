@@ -2,9 +2,8 @@ from fastapi import FastAPI
 
 from src.middleware.lifespan import lifespan  # noqa: E402
 from src.middleware.middleware import LogRequestDataMiddleware  # noqa: E402, F401
-from src.router import handler, install, oauth_callback  # noqa: E402
+from src.router import handler, install, placement  # noqa: E402
 
-# from src.logger.custom_logger import logger
 
 app = FastAPI(lifespan=lifespan)
 
@@ -12,4 +11,4 @@ app = FastAPI(lifespan=lifespan)
 
 app.include_router(handler.router)
 app.include_router(install.router)
-app.include_router(oauth_callback.router)
+app.include_router(placement.router)
