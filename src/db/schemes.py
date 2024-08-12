@@ -22,7 +22,6 @@ class Auth(Base):
     id_auth: Mapped[int] = mapped_column(primary_key=True)
     access_token: Mapped[str]
     refresh_token: Mapped[str]
-    client_endpoint: Mapped[str]
     created_at: Mapped[datetime]
 
 

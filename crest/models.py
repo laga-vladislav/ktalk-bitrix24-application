@@ -52,4 +52,3 @@ class CallRequest(BaseModel):
 class AuthTokens(BaseModel):
     access_token: str
     refresh_token: str
-    client_endpoint: str
