@@ -1,9 +1,11 @@
 import json
+
 from src.logger.custom_logger import logger
+
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.utils.parser import parse_form_data
+from src.middleware.utils import parse_form_data
 
 class LogRequestDataMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -67,7 +69,9 @@ class LogRequestDataMiddleware(BaseHTTPMiddleware):
         logger_message.append(f"Ответ на запрос {request.url.path}")
         logger_message.append(f"Статус ответа: {response.status_code}")
         response_headers = dict(response.headers)
-        response_headers_json = json.dumps(response_headers, indent=4, ensure_ascii=False)
+        response_headers_json = json.dumps(
+            response_headers, indent=4, ensure_ascii=False
+        )
         logger_message.append(f"Заголовки ответа:\n{response_headers_json}")
 
         # Логирование информации о запросе

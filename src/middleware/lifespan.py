@@ -5,6 +5,8 @@ from fastapi import FastAPI
 from crest.crest import CRestBitrix24
 from src.logger.custom_logger import logger
 
+from src.db.database import run_db
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,6 +33,9 @@ async def lifespan(app: FastAPI):
             )
 
         app.state.CRest = CRest
+
+        await run_db()
+        logger.info("Успешное подключение к базе данных")
 
         yield
     except Exception as e:
