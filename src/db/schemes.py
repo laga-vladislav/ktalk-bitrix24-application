@@ -8,7 +8,7 @@ class Base(AsyncAttrs, DeclarativeBase):
     pass
 
 
-class Portal(Base):
+class PortalScheme(Base):
     __tablename__ = "portal"
 
     member_id: Mapped[str] = mapped_column(primary_key=True)
@@ -16,7 +16,7 @@ class Portal(Base):
     scope: Mapped[str] = mapped_column()
 
 
-class Auth(Base):
+class AuthScheme(Base):
     __tablename__ = "auth"
 
     id_auth: Mapped[int] = mapped_column(primary_key=True)
@@ -25,11 +25,11 @@ class Auth(Base):
     created_at: Mapped[datetime]
 
 
-class User(Base):
+class UserScheme(Base):
     __tablename__ = "user"
 
     user_id: Mapped[int] = mapped_column(primary_key=True)
     member_id: Mapped[str] = mapped_column(
-        ForeignKey(Portal.member_id), primary_key=True)
-    id_auth: Mapped[int] = mapped_column(ForeignKey(Auth.id_auth))
+        ForeignKey(PortalScheme.member_id), primary_key=True)
+    id_auth: Mapped[int] = mapped_column(ForeignKey(AuthScheme.id_auth))
     is_admin: Mapped[bool] = mapped_column(default=False)

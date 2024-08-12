@@ -1,17 +1,20 @@
 import json
+from typing import AsyncGenerator
 from fastapi import Depends, FastAPI, Form, Query, Request
 from fastapi.responses import HTMLResponse
 
 from crest.crest import CRestBitrix24
-from crest.models import CallRequest
+from crest.models import CallRequest, AuthTokens
 from src.middleware.middleware import LogRequestDataMiddleware
 from src.middleware.lifespan import lifespan
+from src.db.database_session import get_session
+from src.db.requests import *
 # from src.logger.custom_logger import logger
 
 
 app = FastAPI(lifespan=lifespan)
 
-app.add_middleware(LogRequestDataMiddleware)
+# app.add_middleware(LogRequestDataMiddleware)
 
 
 def get_crest():
@@ -22,16 +25,18 @@ def get_crest():
 async def head_install():
     return
 
+
 @app.head("/handler")
 async def head_handler():
     return
+
 
 @app.post("/install")
 async def install(
     request: Request,
     CRest: CRestBitrix24 = Depends(get_crest),
     admin_refresh_token: str = Form(..., alias="REFRESH_ID"),
-    # admin_access_token: str = Form(..., alias="AUTH_ID"),
+    session: AsyncGenerator = Depends(get_session)
 ):
     html_content = """
         <!DOCTYPE html>
@@ -50,15 +55,18 @@ async def install(
         </body>
         </html>
     """
+    result = await CRest.refresh_token(refresh_token=admin_refresh_token)
 
-    newauth = await CRest.refresh_token(admin_refresh_token)
-    admin_access_token = newauth["access_token"]
-    admin_refresh_token = newauth["refresh_token"]
+    admin_tokens = AuthTokens(
+        access_token=result["access_token"],
+        refresh_token=result["refresh_token"]
+    )
+    print(result)
 
-    callrequest = CallRequest(method="user.admin")
-    result = await CRest.call(callrequest,client_endpoint=newauth["client_endpoint"], access_token=admin_access_token)
-
-    print(json.dumps(result, indent=4, ensure_ascii=False))
+    # await add_portal(session=session, portal_model=PortalModel(**result))  # заглушка
+    portal = await get_portal(session=session, member_id=result["member_id"])
+    
+    print(portal)
 
     return HTMLResponse(content=html_content, status_code=200)
 
@@ -74,7 +82,7 @@ async def handler(
     newauth = await CRest.refresh_token(user_refresh_token)
     user_access_token = newauth["access_token"]
     user_refresh_token = newauth["refresh_token"]
-    
+
     callreq = CallRequest(method="user.admin")
     result = await CRest.call(callreq, client_endpoint=newauth["client_endpoint"], access_token=user_access_token)
 
