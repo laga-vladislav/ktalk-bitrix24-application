@@ -5,7 +5,8 @@ from typing import Dict
 
 class CallRequest(BaseModel):
     method: str = ""  # пример crm.contact.add
-    params: Dict = {}  # пример {"FIELDS[NAME]": "test", "FIELDS[LAST_NAME]": "test"}
+    # пример {"FIELDS[NAME]": "test", "FIELDS[LAST_NAME]": "test"}
+    params: Dict = {}
 
     def get_path(self):
         """
@@ -30,12 +31,15 @@ class CallRequest(BaseModel):
         for key, value in params.items():
             if isinstance(value, dict):
                 output.append(
-                    self._format_params_recursion(value, convention % key + "[%s]")
+                    self._format_params_recursion(
+                        value, convention % key + "[%s]")
                 )
             elif isinstance(value, list):
-                new_params = {str(i): element for i, element in enumerate(value)}
+                new_params = {str(i): element for i,
+                              element in enumerate(value)}
                 output.append(
-                    self._format_params_recursion(new_params, convention % key + "[%s]")
+                    self._format_params_recursion(
+                        new_params, convention % key + "[%s]")
                 )
             else:
                 key = urllib.parse.quote(key)
@@ -44,3 +48,8 @@ class CallRequest(BaseModel):
 
         return "&".join(output)
 
+
+class AuthTokens(BaseModel):
+    access_token: str
+    refresh_token: str
+    client_endpoint: str

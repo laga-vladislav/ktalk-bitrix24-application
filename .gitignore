@@ -6,3 +6,4 @@ settings.json
 app.log*
 abc-test.py
 test.py
+*.sqlite3
