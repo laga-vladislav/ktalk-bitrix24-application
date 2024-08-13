@@ -5,10 +5,11 @@ from fastapi.responses import HTMLResponse
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.db.database import get_session
-from src.db.schemes import PortalScheme, UserScheme, AuthScheme
+from src.db.models import PortalModel
 from src.router.utils import get_crest
 
 from src.logger.custom_logger import logger
+
 router = APIRouter()
 
 
@@ -36,9 +37,13 @@ async def install(
         </body>
         </html>
     """
-    
+
     # Получаем обширную информацию с новыми токенами
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
+
+    # ищем портал
+    # если портала нет то создаем
+    # если портал есть то обновляем все
 
     admin_tokens = AuthTokens(
         access_token=new_auth["access_token"], refresh_token=new_auth["refresh_token"]
@@ -60,25 +65,6 @@ async def install(
         logger.info("Установка виджетов прошла успешно")
     else:
         logger.info("Виджеты были уже установлены")
-
-
-    # # Если портал уже существует, то обновляем его адрес и scope.
-    # # Если портал не существует, то добавляем его
-    # portal = await session.get(PortalScheme, new_auth["member_id"])
-    # if portal:
-    #     portal.endpoint = new_auth["client_endpoint"]
-    #     portal.scope = new_auth["scope"]
-    # else:
-    #     portal = PortalScheme(
-    #         member_id=new_auth["member_id"],
-    #         endpoint=new_auth["client_endpoint"],
-    #         scope=new_auth["scope"] + "CREATEDONLY",
-    #     )
-    #     session.add(portal)
-    # await session.commit()
-
-    # # ВСЕ, ПОКА НЕ РАБОТАЕМ С БД
-    # # НУЖНО ПЕРЕРАБОТАТЬ ТАБЛИЦЫ!
 
     return HTMLResponse(content=html_content, status_code=200)
 

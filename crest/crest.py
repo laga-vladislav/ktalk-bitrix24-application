@@ -100,7 +100,10 @@ class CRestBitrix24:
                 new_auth = await self.refresh_token(
                     refresh_token=auth_tokens.refresh_token
                 )
-                copy_request.params["auth"] = new_auth["access_token"]
+                auth_tokens.access_token=new_auth["access_token"]
+                auth_tokens.refresh_token=new_auth["refresh_token"]
+
+                copy_request.params["auth"] = auth_tokens.access_token
                 return await perform_request()
             else:
                 return e.response.json()
