@@ -6,6 +6,7 @@ from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.db.database import get_session
 from src.db.models import PortalModel
+from src.db.requests import get_portal, add_portal, refresh_portal
 from src.router.utils import get_crest
 
 from src.logger.custom_logger import logger
@@ -42,8 +43,20 @@ async def install(
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
 
     # ищем портал
-    # если портала нет то создаем
-    # если портал есть то обновляем все
+    portal = await get_portal(session, new_auth["member_id"])
+    if portal:
+        portal.access_token = new_auth["access_token"]
+        portal.refresh_token = new_auth["refresh_token"]
+        await refresh_portal(session, portal)
+    else:
+        portal = PortalModel(
+            member_id=new_auth["member_id"],
+            endpoint=new_auth["endpoint"],
+            scope=new_auth["scope"],
+            access_token=new_auth["access_token"],
+            refresh_token=new_auth["refresh_token"]
+        )
+        await add_portal(session, new_auth)
 
     admin_tokens = AuthTokens(
         access_token=new_auth["access_token"], refresh_token=new_auth["refresh_token"]

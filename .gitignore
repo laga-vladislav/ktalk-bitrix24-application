@@ -7,3 +7,4 @@ app.log*
 abc-test.py
 test.py
 *.sqlite3
+.pytest_cache
