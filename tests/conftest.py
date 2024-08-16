@@ -4,6 +4,8 @@ import random
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from src.db.models import PortalModel
+from src.db.requests import add_portal, get_portal
 from src.db.schemes import Base
 
 from httpx import AsyncClient
@@ -52,21 +54,48 @@ def get_random_string(length: int = 10):
 """
 webhook = env.str("CLIENT_WEBHOOK")
 crest_webhook = CRestBitrix24(client_webhook=webhook)
+client_id = env.str("CLIENT_ID")
+client_secret = env.str("CLIENT_SECRET")
+crest_auth = CRestBitrix24(client_id=client_id, client_secret=client_secret)
 
 
-# """
-# Настройки fastapi приложения
-# """
+@pytest.fixture
+async def get_portal() -> PortalModel:
+    auth = await crest_auth.refresh_token(refresh_token='8fd9e66600704ff20070536200000001706207b51c5041ac22f9cb2585ae286730e85f')
+    return PortalModel(
+        member_id=auth['member_id'],
+        endpoint=auth['client_endpoint'],
+        scope=auth['scope'],
+        access_token=auth['access_token'],
+        refresh_token=auth['refresh_token'],
+    )
 
 
-# async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
-#     async with async_session_maker() as session:
-#         yield session
-
-# app.dependency_overrides[get_session] = override_get_session
+"""
+Настройки fastapi приложения
+"""
 
 
-# @pytest.fixture(scope="session")
-# async def ac() -> AsyncGenerator[AsyncClient, None]:
-#     async with AsyncClient(app=app, base_url="http://test") as ac:
-#         yield ac
+async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
+    async with async_session_maker() as session:
+        yield session
+
+
+def add_crest() -> CRestBitrix24:
+    if env.str("CLIENT_ID") and env.str("CLIENT_SECRET"):
+        app.state.CRest = CRestBitrix24(
+            client_id=env.str("CLIENT_ID"),
+            client_secret=env.str("CLIENT_SECRET"),
+        )
+    else:
+        print("Необходимо задать client_id и client_secret")
+
+
+add_crest()
+app.dependency_overrides[get_session] = override_get_session
+
+
+@pytest.fixture(scope="session")
+async def ac() -> AsyncGenerator[AsyncClient, None]:
+    async with AsyncClient(app=app, base_url="http://test") as ac:
+        yield ac

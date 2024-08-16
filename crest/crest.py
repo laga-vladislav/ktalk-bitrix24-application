@@ -80,7 +80,7 @@ class CRestBitrix24:
 
         return responses
 
-    # @limits_manager
+    @limits_manager
     async def _call_curl(
         self, request: CallRequest, client_endpoint: str, auth_tokens: AuthTokens = None
     ) -> Any:
@@ -101,10 +101,9 @@ class CRestBitrix24:
             return await perform_request()
 
         except HTTPStatusError as e:
-            print(e.response)
-            print(e.request)
-            return
-            if e.response.json().get("error") == "expired_token":
+            if e.response.status_code == 414:
+                raise HTTPStatusError('Слишком длинный URI')
+            elif e.response.json().get("error") == "expired_token":
                 new_auth = await self.refresh_token(
                     refresh_token=auth_tokens.refresh_token
                 )

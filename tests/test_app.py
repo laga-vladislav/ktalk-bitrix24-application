@@ -1,6 +1,9 @@
 import asyncio
-from tests.conftest import crest_webhook
-from crest.models import CallRequest
+
+from httpx import AsyncClient
+from src.db.models import PortalModel
+from tests.conftest import crest_webhook, crest_auth
+from crest.models import CallRequest, AuthTokens
 
 
 async def test_contact_add_method_webhook():
@@ -12,47 +15,28 @@ async def test_contact_add_method_webhook():
               i}. Result: {result}\n")
 
 
-async def test_contact_add_method_webhook_batch():
-    call_requests = []
-    # call_requests = [
-    #     CallRequest(
-    #         method="crm.contact.add",
-    #         params={
-    #             "fields": {
-    #                 'name': f'pytest{i}'
-    #             }
-    #         }
-    #     )
-    #     for i in range(15)
-    # ]
-    for i in range(40):
-        call_requests.append(
-            CallRequest(
-                method="crm.deal.add",
-                params={
-                    'fields':
-                    {
-                        "TITLE": f"Плановая продажа {i}",
-                        "TYPE_ID": "GOODS",
-                        "STAGE_ID": "NEW",
-                        "COMPANY_ID": 3,
-                        "CONTACT_ID": 3,
-                        "OPENED": "Y",
-                        "ASSIGNED_BY_ID": 1,
-                        "PROBABILITY": 30,
-                        "CURRENCY_ID": "USD",
-                        "OPPORTUNITY": 5000,
-                        "CATEGORY_ID": 5
-                    }
-                }
-            )
-        )
-    result = await crest_webhook.call_batch(call_requests)
-    # print(result)
-asyncio.run(test_contact_add_method_webhook_batch())
+# async def test_install_post(ac: AsyncClient, admin_refresh_token: str = '8fd9e66600704ff20070536200000001706207b51c5041ac22f9cb2585ae286730e85f'):
+#     result = await ac.post("/install", data={
+#         "REFRESH_ID": admin_refresh_token})
+#     print(result)
 
-# async def test_refresh_token():
-#     vladsupermeowloveyouvlad = str
-#     call_request = CallRequest(method="refresh_token")
-#     for i in range(10):
-#         crest_webhook.call()
+
+async def test_contact_add_method_auth_batch(get_portal: PortalModel):
+    call_requests = [
+        CallRequest(
+            method="crm.contact.add",
+            params={
+                "fields": {'name': 'pytest_batch'}
+            }
+        )
+        for i in range(70)
+    ]
+
+    result = await crest_auth.call_batch(
+        call_requests,
+        client_endpoint=get_portal.endpoint,
+        auth_tokens=AuthTokens(
+            access_token=get_portal.access_token, refresh_token=get_portal.refresh_token),
+    )
+    print(result)
+    assert isinstance(result, list)
