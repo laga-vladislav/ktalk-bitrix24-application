@@ -1,9 +1,12 @@
 from httpx import AsyncClient, HTTPStatusError
 from typing import Any
 from crest.models import CallRequest, AuthTokens
+from crest.limits_manager import LimitsManager
 
 
 class CRestBitrix24:
+    limits_manager = LimitsManager()
+
     def __init__(
         self,
         client_webhook: str | None = None,
@@ -67,7 +70,8 @@ class CRestBitrix24:
                 index = start + count
                 if index >= total_requests:
                     break
-                parameters["cmd"][f"request{index}"] = request_batch[index].get_path()
+                parameters["cmd"][f"request{
+                    index}"] = request_batch[index].get_path()
 
             # Назначение параметров запроса и отправка
             batch_CallRequest.params = parameters
@@ -76,6 +80,7 @@ class CRestBitrix24:
 
         return responses
 
+    # @limits_manager
     async def _call_curl(
         self, request: CallRequest, client_endpoint: str, auth_tokens: AuthTokens = None
     ) -> Any:
@@ -96,12 +101,15 @@ class CRestBitrix24:
             return await perform_request()
 
         except HTTPStatusError as e:
+            print(e.response)
+            print(e.request)
+            return
             if e.response.json().get("error") == "expired_token":
                 new_auth = await self.refresh_token(
                     refresh_token=auth_tokens.refresh_token
                 )
-                auth_tokens.access_token=new_auth["access_token"]
-                auth_tokens.refresh_token=new_auth["refresh_token"]
+                auth_tokens.access_token = new_auth["access_token"]
+                auth_tokens.refresh_token = new_auth["refresh_token"]
 
                 copy_request.params["auth"] = auth_tokens.access_token
                 return await perform_request()
@@ -118,7 +126,8 @@ class CRestBitrix24:
             "grant_type": "refresh_token",  # тип авторизационных данных
             "client_id": self.CLIENT_ID,  # код приложения
             "client_secret": self.CLIENT_SECRET,  # секретный ключ приложения
-            "refresh_token": refresh_token,  # значение сохраненного токена продления авторизации
+            # значение сохраненного токена продления авторизации
+            "refresh_token": refresh_token,
         }
 
         callRequest = CallRequest(params=payload)

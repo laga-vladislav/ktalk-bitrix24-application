@@ -23,7 +23,7 @@ class CallRequest(BaseModel):
 
         return self._format_params_recursion(self.params, convention)
 
-    def _format_params_recursion(self, params, convention="%s"):
+    def _format_params_recursion(self, params, convention):
         if not params:
             return ""
 

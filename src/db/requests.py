@@ -1,6 +1,6 @@
 from typing import AsyncGenerator
-from models import PortalModel
-from schemes import PortalScheme
+from src.db.models import PortalModel
+from src.db.schemes import PortalScheme
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
