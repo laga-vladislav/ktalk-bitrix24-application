@@ -1,4 +1,3 @@
-from typing import AsyncGenerator
 from src.db.models import PortalModel
 from src.db.schemes import PortalScheme
 from sqlalchemy import select, update
@@ -16,10 +15,14 @@ async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
                      portal['member_id']}' уже существует")
 
 
-async def get_portal(session: AsyncSession, member_id: str) -> PortalModel:
+async def get_portal(session: AsyncSession, member_id: str) -> PortalModel | None:
     result = await session.execute(select(PortalScheme).where(PortalScheme.member_id == member_id))
-    portal = result.scalar()
-    return PortalModel(**portal.__dict__)
+    portal_scheme = result.scalar()
+    if portal_scheme:
+        return PortalModel(**portal_scheme.__dict__)
+    return None
+    # код ниже вызывает ошибку, связанную с тем, что одновременно у sqlite может быть только одно соединение (втф)
+    # return PortalModel(**result.scalar().__dict__) if result.scalar() else None
 
 
 async def refresh_portal(session: AsyncSession, portal: PortalModel) -> None:

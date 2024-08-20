@@ -41,7 +41,7 @@ async def install(
 
     # Получаем обширную информацию с новыми токенами
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
-
+    
     # ищем портал
     portal = await get_portal(session, new_auth["member_id"])
     if portal:
@@ -51,12 +51,12 @@ async def install(
     else:
         portal = PortalModel(
             member_id=new_auth["member_id"],
-            endpoint=new_auth["endpoint"],
+            endpoint=new_auth["client_endpoint"],
             scope=new_auth["scope"],
             access_token=new_auth["access_token"],
             refresh_token=new_auth["refresh_token"]
         )
-        await add_portal(session, new_auth)
+        await add_portal(session, portal)
 
     admin_tokens = AuthTokens(
         access_token=new_auth["access_token"], refresh_token=new_auth["refresh_token"]
