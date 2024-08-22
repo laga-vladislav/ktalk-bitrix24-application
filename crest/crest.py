@@ -80,7 +80,7 @@ class CRestBitrix24:
 
         return responses
 
-    @limits_manager
+    # @limits_manager
     async def _call_curl(
         self, request: CallRequest, client_endpoint: str, auth_tokens: AuthTokens = None
     ) -> Any:

@@ -61,7 +61,7 @@ crest_auth = CRestBitrix24(client_id=client_id, client_secret=client_secret)
 
 @pytest.fixture
 async def get_portal() -> PortalModel:
-    auth = await crest_auth.refresh_token(refresh_token='8fd9e66600704ff20070536200000001706207b51c5041ac22f9cb2585ae286730e85f')
+    auth = await crest_auth.refresh_token(refresh_token='0945ea660070836a00705362000000017062070b2734dbeda74dfd66c5e5846d3bec79')
     return PortalModel(
         member_id=auth['member_id'],
         endpoint=auth['client_endpoint'],
