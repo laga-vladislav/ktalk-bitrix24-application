@@ -1,5 +1,5 @@
 from src.models import PortalModel
-from src.ktalk.requests import set_option_call, create_meeting, get_option_value_by_name, get_all_options, set_options_call
+from src.ktalk.requests import set_option_call, create_meeting, get_option_value_by_name, get_all_options_bitrix_options, set_options_call
 from src.ktalk.models import MeetingModel, AppOptionModel
 
 from src.ktalk.requests import set_options_call
@@ -62,12 +62,12 @@ async def test_get_all_options(get_portal: PortalModel):
     assert result.get('pytest') == 'pytest'
 
 
-async def test_get_meeting():
+async def test_create_meeting(get_portal: PortalModel):
     body = {
         "subject": "Созвон. По будням, в 20:00, только на СТС",
         "description": "Пожалуйста, не подключайтесь!",
-        "start": "2024-08-28T03:00:00.000Z",
-        "end": "2024-08-28T04:00:00.000Z",
+        "start": "2024-08-28T03:20:00.000Z",
+        "end": "2024-08-28T04:21:00.000Z",
         "timezone": "GMT+9",
         "allowAnonymous": True,
         "enableSip": True,
@@ -76,7 +76,8 @@ async def test_get_meeting():
         "isRecurring": False
     }
     meeting = MeetingModel(**body)
-    result = await create_meeting(meeting)
+    options = await get_all_options_bitrix_options(crest_auth, get_portal)
+    result = await create_meeting(meeting, options)
     print(result)
 
 
