@@ -15,7 +15,7 @@ class MeetingModel(BaseModel):
     start: str = Field(description="Формат типа 2024-08-28T03:00:00.000Z")
     end: str = Field(description="Формат типа 2024-08-28T04:00:00.000Z")
     timezone: str
-    roomName: str = Field(default=str(uuid.uuid4()))
+    roomName: str = Field(default_factory=lambda: str(uuid.uuid4()))
     allowAnonymous: bool
     enableSip: bool
     pinCode: str
