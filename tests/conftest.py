@@ -4,7 +4,7 @@ import random
 from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from src.db.models import PortalModel
+from src.models import PortalModel
 from src.db.requests import add_portal, get_portal
 from src.db.schemes import Base
 

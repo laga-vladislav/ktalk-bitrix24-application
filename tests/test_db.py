@@ -1,4 +1,4 @@
-from src.db.models import PortalModel
+from src.models import PortalModel
 from src.db.requests import add_portal, get_portal, refresh_portal
 from tests.conftest import get_random_string
 

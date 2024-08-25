@@ -1,5 +1,5 @@
 from typing import AsyncGenerator
-from src.db.models import PortalModel
+from src.models import PortalModel
 from src.db.schemes import PortalScheme
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession

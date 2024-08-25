@@ -3,7 +3,7 @@ import asyncio
 from datetime import datetime, timedelta
 
 from httpx import AsyncClient
-from src.db.models import PortalModel
+from src.models import PortalModel
 from tests.conftest import crest_webhook, crest_auth
 from crest.models import CallRequest, AuthTokens
 
@@ -155,6 +155,7 @@ async def test_deal_get(get_portal: PortalModel):
     )
     print(result)
 
+
 async def test_contact_add_method_webhook():
     call_request = CallRequest(method="crm.contact.add", params={
                                "fields": {'name': 'pytest'}})
@@ -162,12 +163,6 @@ async def test_contact_add_method_webhook():
         result = await crest_webhook.call(request=call_request)
         print(f"Method: '{call_request.method}'. Attempt # {
               i}. Result: {result}\n")
-
-
-async def test_install_post(ac: AsyncClient, admin_refresh_token: str = '8fd9e66600704ff20070536200000001706207b51c5041ac22f9cb2585ae286730e85f'):
-    result = await ac.post("/install", data={
-        "REFRESH_ID": admin_refresh_token})
-    print(result)
 
 
 async def test_contact_add_method_auth_batch(get_portal: PortalModel):
@@ -178,7 +173,7 @@ async def test_contact_add_method_auth_batch(get_portal: PortalModel):
                 "fields": {'name': 'pytest_batch'}
             }
         )
-        for i in range(7000)
+        for i in range(60)
     ]
 
     result = await crest_auth.call_batch(

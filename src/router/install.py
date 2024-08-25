@@ -5,7 +5,7 @@ from fastapi.responses import HTMLResponse
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.db.database import get_session
-from src.db.models import PortalModel
+from src.models import PortalModel
 from src.db.requests import get_portal, add_portal, refresh_portal
 from src.router.utils import get_crest
 
