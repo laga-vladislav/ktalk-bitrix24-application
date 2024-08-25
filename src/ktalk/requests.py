@@ -1,8 +1,9 @@
+from typing import Dict
 from httpx import AsyncClient
 
 from crest.crest import CRestBitrix24
 from crest.models import CallRequest, AuthTokens
-from src.ktalk.models import MeetingModel, BitrixKTalkStorageModel
+from src.ktalk.models import MeetingModel, BitrixAppStorageModel, AppOptionModel
 from src.models import PortalModel
 
 
@@ -33,6 +34,36 @@ async def set_option_call(
     return response
 
 
+async def set_options_call(
+    crest_instance: CRestBitrix24,
+    portal: PortalModel,
+    options: list[AppOptionModel]
+):
+    endpoint = portal.endpoint
+    tokens = AuthTokens(
+        access_token=portal.access_token,
+        refresh_token=portal.refresh_token
+    )
+
+    params = {
+        'options': {}
+    }
+    for option in options:
+        params['options'][option.option_name] = option.option_data
+
+    request = CallRequest(
+        method="app.option.set",
+        params=params
+    )
+
+    response = await crest_instance.call(
+        request,
+        client_endpoint=endpoint,
+        auth_tokens=tokens
+    )
+    return response
+
+
 async def get_option_value_by_name(
     crest_instance: CRestBitrix24,
     portal: PortalModel,
@@ -57,7 +88,7 @@ async def get_option_value_by_name(
     return response.get('result') if response.get('result') else ''
 
 
-async def get_all_options(
+async def get_all_options_dict(
     crest_instance: CRestBitrix24,
     portal: PortalModel
 ) -> dict:
@@ -77,13 +108,23 @@ async def get_all_options(
     return dict(response.get('result')) if response.get('result') else {}
 
 
-async def create_meeting(meeting: MeetingModel) -> None:
-    ktalk_storage = await get_storage(1, "ktalk")
+async def get_all_options_bitrix_options(
+    crest_instance: CRestBitrix24,
+    portal: PortalModel
+) -> BitrixAppStorageModel | None:
+    options = await get_all_options_dict(
+        crest_instance=crest_instance,
+        portal=portal
+    )
+    return BitrixAppStorageModel(**dict(options)) if options else None
 
+
+
+async def create_meeting(meeting: MeetingModel, app_options: BitrixAppStorageModel) -> dict:
     async with AsyncClient() as client:
-        space_name = ktalk_storage.space
-        email = ktalk_storage.admin_email
-        api_key = ktalk_storage.api_key
+        space_name = app_options.space
+        email = app_options.admin_email
+        api_key = app_options.api_key
 
         response = await client.post(
             url=f"https://{space_name}.ktalk.ru/api/emailCalendar/{email}",
@@ -92,10 +133,3 @@ async def create_meeting(meeting: MeetingModel) -> None:
         )
         response.raise_for_status()
         return response.json()
-
-
-async def get_storage(creator_id: int, storage_name: str) -> BitrixKTalkStorageModel:
-    return BitrixKTalkStorageModel(**{"space": "infocom-child",
-                                      "api_key": "b8vyChTvRtVRFbuWD3MPUTrecdxXSQJy",
-                                      "admin_email": "v.laga@infocom.io",
-                                      "member_id": "16fc986a7286f8863682790e8ea9327c"})

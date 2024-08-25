@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field
 import uuid
 
 
-class BitrixKTalkStorageModel(BaseModel):
+class BitrixAppStorageModel(BaseModel):
     space: str
     api_key: str
     admin_email: str
@@ -29,7 +29,12 @@ class ParticipantsModel(BaseModel):
     selectedClients: list[dict]
 
 
-class KTalkBackAnswer(BaseModel):
+class AppOptionModel(BaseModel):
+    option_name: str
+    option_data: str
+
+
+class KTalkBackAnswerModel(BaseModel):
     url: str
     sipSettings: dict
     error: str | None = None
