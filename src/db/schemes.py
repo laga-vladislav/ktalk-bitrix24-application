@@ -12,7 +12,7 @@ class PortalScheme(Base):
     __tablename__ = "portal"
 
     member_id: Mapped[str] = mapped_column(String, primary_key=True)
-    endpoint: Mapped[str] = mapped_column(String, nullable=False)
+    client_endpoint: Mapped[str] = mapped_column(String, nullable=False)
     scope: Mapped[str] = mapped_column(String, nullable=False)
     access_token: Mapped[str] = mapped_column(String, nullable=False)
     refresh_token: Mapped[str] = mapped_column(String, nullable=False)

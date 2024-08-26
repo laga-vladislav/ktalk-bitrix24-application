@@ -51,7 +51,7 @@ async def install(
     else:
         portal = PortalModel(
             member_id=new_auth["member_id"],
-            endpoint=new_auth["client_endpoint"],
+            client_endpoint=new_auth["client_endpoint"],
             scope=new_auth["scope"],
             access_token=new_auth["access_token"],
             refresh_token=new_auth["refresh_token"]

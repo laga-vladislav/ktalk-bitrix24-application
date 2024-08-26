@@ -5,7 +5,7 @@ from tests.conftest import get_random_string
 
 test_portal_data_dict = {
     'member_id': get_random_string(),
-    'endpoint': 'endpoint',
+    'client_endpoint': 'client_endpoint',
     'scope': 'scope',
     'access_token': 'access_token',
     'refresh_token': 'refresh_token',
@@ -13,7 +13,7 @@ test_portal_data_dict = {
 }
 test_portal_data_model = PortalModel(
     member_id=get_random_string(),
-    endpoint='endpoint',
+    client_endpoint='client_endpoint',
     scope='scope',
     access_token='access_token',
     refresh_token='refresh_token',

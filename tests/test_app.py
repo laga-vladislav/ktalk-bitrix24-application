@@ -1,12 +1,15 @@
-import asyncio
-
 from datetime import datetime, timedelta
 
 from httpx import AsyncClient
 from src.models import PortalModel
 from tests.conftest import crest_webhook, crest_auth
 from crest.models import CallRequest, AuthTokens
+from src.ktalk.requests import get_all_options_bitrix_options
+from src.ktalk.models import MeetingModel
 
+async def test_refresh_token(get_portal: PortalModel):
+    result = await crest_auth.refresh_token(get_portal.refresh_token)
+    print(result)
 
 async def test_add_robot_auth(get_portal: PortalModel):
     result = await crest_auth.call(
@@ -65,7 +68,7 @@ async def test_add_robot_auth(get_portal: PortalModel):
                 }
             }
         ),
-        client_endpoint=get_portal.endpoint,
+        client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
     )
@@ -116,7 +119,7 @@ async def test_add_activity_todo(get_portal: PortalModel):
                 ]
             }
         ),
-        client_endpoint=get_portal.endpoint,
+        client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
     )
@@ -131,10 +134,10 @@ async def test_get_contacts_from_deal(get_portal: PortalModel):
         CallRequest(
             method="crm.deal.contact.items.get",
             params={
-                'id': 318
+                'id': 1
             }
         ),
-        client_endpoint=get_portal.endpoint,
+        client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
     )
@@ -149,7 +152,7 @@ async def test_deal_get(get_portal: PortalModel):
                 'id': 318
             }
         ),
-        client_endpoint=get_portal.endpoint,
+        client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
     )
@@ -178,9 +181,40 @@ async def test_contact_add_method_auth_batch(get_portal: PortalModel):
 
     result = await crest_auth.call_batch(
         request_batch=call_requests,
-        client_endpoint=get_portal.endpoint,
+        client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token),
     )
     print(result)
     assert isinstance(result, list)
+
+
+async def test_create_meeting_endpoint(get_portal: PortalModel, ac: AsyncClient):
+    auth = await crest_auth.refresh_token(refresh_token=get_portal.refresh_token)
+    tokens = AuthTokens(**auth)
+    meeting = MeetingModel(**{
+        "subject": "Созвон. По будням, в 20:00, только на СТС",
+        "description": "Пожалуйста, не подключайтесь!",
+        "start": "2024-08-28T03:20:00.000Z",
+        "end": "2024-08-28T04:21:00.000Z",
+        "timezone": "GMT+9",
+        "allowAnonymous": True,
+        "enableSip": True,
+        "pinCode": "56636",
+        "enableAutoRecording": True,
+        "isRecurring": False
+    })
+    print(tokens.model_dump())
+    print(meeting.model_dump())
+    result = await ac.post(
+        '/create_meeting',
+        json={
+            "tokens": tokens.model_dump(),
+            "meeting": meeting.model_dump()
+        },
+        params={
+            'creator_id': 1
+        }
+    )
+    print(result)
+    assert result.status_code == 200

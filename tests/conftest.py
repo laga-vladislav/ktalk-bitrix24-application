@@ -64,7 +64,7 @@ async def get_portal() -> PortalModel:
     auth = await crest_auth.refresh_token(refresh_token='0945ea660070836a00705362000000017062070b2734dbeda74dfd66c5e5846d3bec79')
     return PortalModel(
         member_id=auth['member_id'],
-        endpoint=auth['client_endpoint'],
+        client_endpoint=auth['client_endpoint'],
         scope=auth['scope'],
         access_token=auth['access_token'],
         refresh_token=auth['refresh_token'],

@@ -1,4 +1,3 @@
-from typing import Dict
 from httpx import AsyncClient
 
 from crest.crest import CRestBitrix24
@@ -13,7 +12,7 @@ async def set_option_call(
     option_name: str,
     option_data: str
 ):
-    endpoint = portal.endpoint
+    endpoint = portal.client_endpoint
     tokens = AuthTokens(
         access_token=portal.access_token,
         refresh_token=portal.refresh_token
@@ -39,7 +38,7 @@ async def set_options_call(
     portal: PortalModel,
     options: list[AppOptionModel]
 ):
-    endpoint = portal.endpoint
+    endpoint = portal.client_endpoint
     tokens = AuthTokens(
         access_token=portal.access_token,
         refresh_token=portal.refresh_token
@@ -69,7 +68,7 @@ async def get_option_value_by_name(
     portal: PortalModel,
     option_name: str
 ) -> str:
-    endpoint = portal.endpoint
+    endpoint = portal.client_endpoint
     tokens = AuthTokens(
         access_token=portal.access_token,
         refresh_token=portal.refresh_token
@@ -92,7 +91,7 @@ async def get_all_options_dict(
     crest_instance: CRestBitrix24,
     portal: PortalModel
 ) -> dict:
-    endpoint = portal.endpoint
+    endpoint = portal.client_endpoint
     tokens = AuthTokens(
         access_token=portal.access_token,
         refresh_token=portal.refresh_token
@@ -119,7 +118,6 @@ async def get_all_options_bitrix_options(
     return BitrixAppStorageModel(**dict(options)) if options else None
 
 
-
 async def create_meeting(meeting: MeetingModel, app_options: BitrixAppStorageModel) -> dict:
     async with AsyncClient() as client:
         space_name = app_options.space
@@ -129,7 +127,7 @@ async def create_meeting(meeting: MeetingModel, app_options: BitrixAppStorageMod
         response = await client.post(
             url=f"https://{space_name}.ktalk.ru/api/emailCalendar/{email}",
             headers={"X-Auth-Token": api_key},
-            json=dict(meeting),
+            json=dict(meeting)
         )
         response.raise_for_status()
         return response.json()
