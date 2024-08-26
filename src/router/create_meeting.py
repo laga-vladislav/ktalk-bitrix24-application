@@ -1,14 +1,12 @@
-from fastapi import APIRouter, Depends, Form, Request, Query, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Request
 
 from crest.crest import CRestBitrix24
+from crest.models import AuthTokens
+from src.models import PortalModel
 from src.router.utils import get_crest
 
 from src.ktalk.requests import get_all_options_bitrix_options, create_meeting
 from src.ktalk.models import MeetingModel, BitrixAppStorageModel, KTalkBackAnswerModel
-from pydantic import ValidationError
-
-from src.logger.custom_logger import logger
 
 
 router = APIRouter()
@@ -17,18 +15,19 @@ router = APIRouter()
 @router.post("/create_meeting")
 async def handler(
     request: Request,
-    creator_id: int,
-    options: BitrixAppStorageModel,
+    creatorId: int,
+    tokens: AuthTokens,
     meeting: MeetingModel,
     CRest: CRestBitrix24 = Depends(get_crest)
 ):
-    # # TODO: как получить member_id?
-    # # я считаю лучшим вариантом передачу нужной информации с фронта.
-    # # Либо фронт может передавать токены, чтобы здесь уже получить настройки
-    # options = await get_all_options_bitrix_options(
-    #     crest_instance=CRest,
-    #     portal=...
-    # )
+    auth = await CRest.refresh_token(refresh_token=tokens.refresh_token)
+    portal = PortalModel(**auth)
+
+    options = await get_all_options_bitrix_options(
+        crest_instance=CRest,
+        portal=portal
+    )
+
     ktalk_response = await create_meeting(
         meeting=meeting,
         app_options=options

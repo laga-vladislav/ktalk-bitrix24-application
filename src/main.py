@@ -7,7 +7,7 @@ from src.router import handler, install, placement, create_meeting  # noqa: E402
 
 app = FastAPI(lifespan=lifespan)
 
-# app.add_middleware(LogRequestDataMiddleware)
+app.add_middleware(LogRequestDataMiddleware)
 
 app.include_router(handler.router)
 app.include_router(install.router)
