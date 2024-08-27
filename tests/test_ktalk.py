@@ -32,6 +32,7 @@ async def test_set_options_call(get_portal: PortalModel):
             AppOptionModel(option_name="pytest", option_data="pytest")
         ]
     )
+    print(result)
 
 
 async def test_get_option_true(get_portal: PortalModel):

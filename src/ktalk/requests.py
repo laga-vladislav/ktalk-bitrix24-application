@@ -2,9 +2,10 @@ from httpx import AsyncClient
 
 from crest.crest import CRestBitrix24
 from crest.models import CallRequest, AuthTokens
-from src.ktalk.models import MeetingModel, BitrixAppStorageModel, AppOptionModel
+from src.ktalk.models import MeetingModel, BitrixAppStorageModel, AppOptionModel, ParticipantsModel
 from src.models import PortalModel
 
+from src.logger.custom_logger import logger
 
 async def set_option_call(
     crest_instance: CRestBitrix24,

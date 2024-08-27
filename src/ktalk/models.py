@@ -24,9 +24,15 @@ class MeetingModel(BaseModel):
     isRecurring: bool
 
 
+class SelectedClientsModel(BaseModel):
+    entityId: int
+    entityTypeId: int
+    isAvailable: bool = Field(default=True)
+
+
 class ParticipantsModel(BaseModel):
     colleguesId: list[int]
-    selectedClients: list[dict]
+    selectedClients: list[SelectedClientsModel]
 
 
 class AppOptionModel(BaseModel):

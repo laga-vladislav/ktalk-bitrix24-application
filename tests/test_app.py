@@ -1,15 +1,15 @@
-from datetime import datetime, timedelta
-
 from httpx import AsyncClient
 from src.models import PortalModel
+from src.router.create_meeting import add_todo_activity
 from tests.conftest import crest_webhook, crest_auth
 from crest.models import CallRequest, AuthTokens
-from src.ktalk.requests import get_all_options_bitrix_options
-from src.ktalk.models import MeetingModel
+from src.ktalk.models import MeetingModel, ParticipantsModel, SelectedClientsModel
+
 
 async def test_refresh_token(get_portal: PortalModel):
     result = await crest_auth.refresh_token(get_portal.refresh_token)
     print(result)
+
 
 async def test_add_robot_auth(get_portal: PortalModel):
     result = await crest_auth.call(
@@ -76,54 +76,41 @@ async def test_add_robot_auth(get_portal: PortalModel):
 
 
 async def test_add_activity_todo(get_portal: PortalModel):
-    result = await crest_auth.call(
-        CallRequest(
-            method="crm.activity.todo.add",
-            params={
-                'ownerTypeId': 2,
-                'ownerId': 318,
-                'title': 'ОБСУЖДАЕМ ПЛАНЫ',
-                'description': 'Явка необязательна.',
-                'deadline': datetime.now() + timedelta(hours=10),
-                'responsibleId': 1,
-                'settings': [
-                    {
-                        'link': 'example.com',
-                        'id': 'link'
-                    },
-                    {
-                        'from': 1724124440000,
-                        'to': 1724124540000,
-                        'duration': 1200000,
-                        'location': '',
-                        'selectedUserIds': [
-                            1, 10
-                        ],
-                        'id': 'calendar'
-                    },
-                    {
-                        'selectedClients': [
-                            {
-                                'entityId': 36469,
-                                'entityTypeId': 3,
-                                'isAvailable': True
-                            },
-                            {
-                                'entityId': 2,
-                                'entityTypeId': 4,
-                                'isAvailable': True
-                            }
-                        ],
-                        'id': 'client'
-                    }
-                ]
-            }
-        ),
-        client_endpoint=get_portal.client_endpoint,
-        auth_tokens=AuthTokens(
-            access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
+    body = {
+        "subject": "Созвон. По будням, в 20:00, только на СТС",
+        "description": "Пожалуйста, не подключайтесь!",
+        "start": "2024-08-28T03:20:00.000Z",
+        "end": "2024-08-28T04:21:00.000Z",
+        "timezone": "GMT+9",
+        "allowAnonymous": True,
+        "enableSip": True,
+        "pinCode": "1234",
+        "enableAutoRecording": True,
+        "isRecurring": False
+    }
+    meeting = MeetingModel(**body)
+    deal = await test_get_last_deal(get_portal)
+    print(deal)
+
+    result = await add_todo_activity(
+        crest=crest_auth,
+        portal=get_portal,
+        creator_id=1,
+        owner_id=deal.get('ID'),
+        meeting=meeting,
+        meeting_url="example.com",
+        participants=ParticipantsModel(
+            colleguesId=[1, 10],
+            selectedClients=[
+                SelectedClientsModel(
+                    entityId=deal['COMPANY_ID'], entityTypeId=4),
+                SelectedClientsModel(
+                    entityId=deal['CONTACT_ID'], entityTypeId=3)
+            ]
+        )
     )
     print(result)
+    assert isinstance(result, dict)
 
 
 async def test_get_contacts_from_deal(get_portal: PortalModel):
@@ -144,19 +131,26 @@ async def test_get_contacts_from_deal(get_portal: PortalModel):
     print(result)
 
 
-async def test_deal_get(get_portal: PortalModel):
+async def test_get_last_deal(get_portal: PortalModel):
     result = await crest_auth.call(
         CallRequest(
-            method="crm.deal.get",
+            method="crm.deal.list",
             params={
-                'id': 318
+                'order': {
+                    'ID': 'DESC'
+                },
+                'select': [
+                    'ID', 'COMPANY_ID', 'CONTACT_ID'
+                ]
             }
         ),
         client_endpoint=get_portal.client_endpoint,
         auth_tokens=AuthTokens(
             access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
     )
-    print(result)
+    print(result.get('result')[0])
+    assert result
+    return result.get('result')[0]
 
 
 async def test_contact_add_method_webhook():
@@ -189,7 +183,7 @@ async def test_contact_add_method_auth_batch(get_portal: PortalModel):
     assert isinstance(result, list)
 
 
-async def test_create_meeting_endpoint(get_portal: PortalModel, ac: AsyncClient):
+async def test_endpoint_create_meeting(get_portal: PortalModel, ac: AsyncClient):
     auth = await crest_auth.refresh_token(refresh_token=get_portal.refresh_token)
     tokens = AuthTokens(**auth)
     meeting = MeetingModel(**{
@@ -204,16 +198,25 @@ async def test_create_meeting_endpoint(get_portal: PortalModel, ac: AsyncClient)
         "enableAutoRecording": True,
         "isRecurring": False
     })
-    print(tokens.model_dump())
-    print(meeting.model_dump())
+    participants = ParticipantsModel(
+        colleguesId=[1, 10],
+        selectedClients=[
+            SelectedClientsModel(
+                entityId=2, entityTypeId=4),
+            SelectedClientsModel(
+                entityId=36469, entityTypeId=3)
+        ]
+    )
     result = await ac.post(
         '/create_meeting',
         json={
             "tokens": tokens.model_dump(),
-            "meeting": meeting.model_dump()
+            "meeting": meeting.model_dump(),
+            "participants": participants.model_dump(exclude_none=True)
         },
         params={
-            'creator_id': 1
+            "creatorId": 1,
+            "ownerId": 320
         }
     )
     print(result)
