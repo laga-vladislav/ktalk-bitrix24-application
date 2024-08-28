@@ -2,6 +2,7 @@ from environs import Env
 from src.models import PortalModel
 from src.ktalk.requests import set_option_call, create_meeting, get_option_value_by_name, get_all_options_bitrix_options, set_options_call, get_all_options_dict
 from src.ktalk.models import MeetingModel, AppOptionModel
+from src.ktalk.utils import get_back_answer
 
 from src.ktalk.requests import set_options_call
 
@@ -18,10 +19,10 @@ body = {
     "start": 1724900580000,
     "end": 1724900589000,
     "timezone": "GMT+9",
-    "allowAnonymous": True,
-    "enableSip": True,
-    "pinCode": "1234",
-    "enableAutoRecording": True,
+    "allowAnonymous": False,
+    "enableSip": False,
+    "pinCode": "",
+    "enableAutoRecording": False,
     "isRecurring": False
 }
 
@@ -102,5 +103,6 @@ async def test_create_meeting(get_portal: PortalModel):
     meeting = MeetingModel(**body)
     options = await get_all_options_bitrix_options(crest_auth, get_portal)
     result = await create_meeting(meeting, options)
-    print(result)
+    back_ansswer = get_back_answer(ktalk_response=result, options=options)
+    print(back_ansswer)
     assert result

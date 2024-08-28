@@ -13,7 +13,6 @@ body = {
     "timezone": "GMT+9",
     "allowAnonymous": True,
     "enableSip": True,
-    "pinCode": "1234",
     "enableAutoRecording": True,
     "isRecurring": False
 }

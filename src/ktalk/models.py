@@ -19,7 +19,7 @@ class MeetingModel(BaseModel):
     roomName: str = Field(default_factory=lambda: str(uuid.uuid4()))
     allowAnonymous: bool
     enableSip: bool
-    pinCode: str
+    pinCode: str  = ""
     # pinCode: int = Field(ge=1000, lt=1000000)
     enableAutoRecording: bool
     isRecurring: bool
