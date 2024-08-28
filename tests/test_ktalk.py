@@ -12,6 +12,19 @@ env = Env()
 option_name = "ktalk_pytest"
 option_data = "true"
 
+body = {
+    "subject": "Созвон. По будням, в 20:00, только на СТС",
+    "description": "Пожалуйста, не подключайтесь!",
+    "start": 1724900580000,
+    "end": 1724900589000,
+    "timezone": "GMT+9",
+    "allowAnonymous": True,
+    "enableSip": True,
+    "pinCode": "1234",
+    "enableAutoRecording": True,
+    "isRecurring": False
+}
+
 
 async def test_set_option_call(get_portal: PortalModel):
     result = await set_option_call(
@@ -86,18 +99,6 @@ async def test_set_options_for_testing(get_portal: PortalModel):
 
 
 async def test_create_meeting(get_portal: PortalModel):
-    body = {
-        "subject": "Созвон. По будням, в 20:00, только на СТС",
-        "description": "Пожалуйста, не подключайтесь!",
-        "start": "2024-08-28T03:20:00.000Z",
-        "end": "2024-08-28T04:21:00.000Z",
-        "timezone": "GMT+9",
-        "allowAnonymous": True,
-        "enableSip": True,
-        "pinCode": "1234",
-        "enableAutoRecording": True,
-        "isRecurring": False
-    }
     meeting = MeetingModel(**body)
     options = await get_all_options_bitrix_options(crest_auth, get_portal)
     result = await create_meeting(meeting, options)

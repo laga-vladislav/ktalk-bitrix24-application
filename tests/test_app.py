@@ -5,6 +5,19 @@ from tests.conftest import crest_webhook, crest_auth
 from crest.models import CallRequest, AuthTokens
 from src.ktalk.models import MeetingModel, ParticipantsModel, SelectedClientsModel
 
+body = {
+    "subject": "Созвон. По будням, в 20:00, только на СТС",
+    "description": "Пожалуйста, не подключайтесь!",
+    "start": 1724900580000,
+    "end": 1724900589000,
+    "timezone": "GMT+9",
+    "allowAnonymous": True,
+    "enableSip": True,
+    "pinCode": "1234",
+    "enableAutoRecording": True,
+    "isRecurring": False
+}
+
 
 async def test_refresh_token(get_portal: PortalModel):
     result = await crest_auth.refresh_token(get_portal.refresh_token)
@@ -76,18 +89,6 @@ async def test_add_robot_auth(get_portal: PortalModel):
 
 
 async def test_add_activity_todo(get_portal: PortalModel):
-    body = {
-        "subject": "Созвон. По будням, в 20:00, только на СТС",
-        "description": "Пожалуйста, не подключайтесь!",
-        "start": "2024-08-28T03:20:00.000Z",
-        "end": "2024-08-28T04:21:00.000Z",
-        "timezone": "GMT+9",
-        "allowAnonymous": True,
-        "enableSip": True,
-        "pinCode": "1234",
-        "enableAutoRecording": True,
-        "isRecurring": False
-    }
     meeting = MeetingModel(**body)
     deal = await test_get_last_deal(get_portal)
     print(deal)
@@ -183,40 +184,27 @@ async def test_contact_add_method_auth_batch(get_portal: PortalModel):
     assert isinstance(result, list)
 
 
-async def test_endpoint_create_meeting(get_portal: PortalModel, ac: AsyncClient):
-    auth = await crest_auth.refresh_token(refresh_token=get_portal.refresh_token)
-    tokens = AuthTokens(**auth)
-    meeting = MeetingModel(**{
-        "subject": "Созвон. По будням, в 20:00, только на СТС",
-        "description": "Пожалуйста, не подключайтесь!",
-        "start": "2024-08-28T03:20:00.000Z",
-        "end": "2024-08-28T04:21:00.000Z",
-        "timezone": "GMT+9",
-        "allowAnonymous": True,
-        "enableSip": True,
-        "pinCode": "56636",
-        "enableAutoRecording": True,
-        "isRecurring": False
-    })
+async def test_endpoint_create_meeting(ac: AsyncClient):
+    meeting = MeetingModel(**body)
     participants = ParticipantsModel(
-        colleguesId=[1, 10],
+        colleguesId=[1, 8],
         selectedClients=[
             SelectedClientsModel(
                 entityId=2, entityTypeId=4),
             SelectedClientsModel(
-                entityId=36469, entityTypeId=3)
+                entityId=2, entityTypeId=3)
         ]
     )
     result = await ac.post(
         '/create_meeting',
         json={
-            "tokens": tokens.model_dump(),
             "meeting": meeting.model_dump(),
             "participants": participants.model_dump(exclude_none=True)
         },
         params={
             "creatorId": 1,
-            "ownerId": 320
+            "ownerId": 2,
+            "memberId": "43c4e7d9d8651368fb77cd2821e99926"
         }
     )
     print(result)

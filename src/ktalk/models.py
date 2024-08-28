@@ -1,4 +1,5 @@
-from pydantic import BaseModel, Field
+from datetime import datetime, timezone
+from pydantic import BaseModel, Field, model_validator
 import uuid
 
 
@@ -12,8 +13,8 @@ class BitrixAppStorageModel(BaseModel):
 class MeetingModel(BaseModel):
     subject: str
     description: str
-    start: str = Field(description="Формат типа 2024-08-28T03:00:00.000Z")
-    end: str = Field(description="Формат типа 2024-08-28T04:00:00.000Z")
+    start: int = Field(description="Дата в формате timestamp")
+    end: int = Field(description="Дата в формате timestamp")
     timezone: str
     roomName: str = Field(default_factory=lambda: str(uuid.uuid4()))
     allowAnonymous: bool
@@ -22,6 +23,27 @@ class MeetingModel(BaseModel):
     # pinCode: int = Field(ge=1000, lt=1000000)
     enableAutoRecording: bool
     isRecurring: bool
+
+
+class MeetingStringDateModel(MeetingModel):
+    """
+    Нужен для удобного преобразования даты одного вида в другую.
+    Чтобы не пришлось руками менять дату при отправке запроса КТолк.
+    """
+    start: str = Field(description="Дата формата 2024-08-28T04:00:00.000Z")
+    end: str = Field(description="Дата формата 2024-08-28T04:00:00.000Z")
+
+    @staticmethod
+    def convert_timestamp_to_string(timestamp: int) -> str:
+        return datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+
+    @model_validator(mode='before')
+    def convert_timestamps(cls, values):
+        if isinstance(values.get('start'), int):
+            values['start'] = cls.convert_timestamp_to_string(values['start'])
+        if isinstance(values.get('end'), int):
+            values['end'] = cls.convert_timestamp_to_string(values['end'])
+        return values
 
 
 class SelectedClientsModel(BaseModel):
@@ -41,6 +63,6 @@ class AppOptionModel(BaseModel):
 
 
 class KTalkBackAnswerModel(BaseModel):
-    url: str
-    sipSettings: dict
-    error: str | None = None
+    url: str = ""
+    sipSettings: dict = {}
+    error: str = ""

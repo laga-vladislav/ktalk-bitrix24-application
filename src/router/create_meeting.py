@@ -1,12 +1,16 @@
+from typing import AsyncGenerator
+from src.db.database import get_session
+from src.db.requests import get_portal
+
 from fastapi import APIRouter, Depends, Request
 
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.models import PortalModel
-from src.router.utils import get_crest, str_date_to_timestamp_in_millisec
+from src.router.utils import get_crest
 
 from src.ktalk.requests import get_all_options_bitrix_options, create_meeting
-from src.ktalk.models import MeetingModel, ParticipantsModel
+from src.ktalk.models import MeetingModel, MeetingStringDateModel, ParticipantsModel, KTalkBackAnswerModel
 from src.ktalk.utils import get_back_answer
 
 from src.logger.custom_logger import logger
@@ -20,23 +24,26 @@ async def handler(
     request: Request,
     creatorId: int,
     ownerId: int,
-    tokens: AuthTokens,
+    memberId: str,
     meeting: MeetingModel,
     participants: ParticipantsModel,
-    CRest: CRestBitrix24 = Depends(get_crest)
-):
+    CRest: CRestBitrix24 = Depends(get_crest),
+    session: AsyncGenerator = Depends(get_session),
+) -> KTalkBackAnswerModel:
     """
     Создание встречи КТолк и дела CRest.
     params:
         creatorId: int - user_id из битрикса создателя встречи.
         ownerId: int - айди объекта CRM. Наример, сделки.
-        tokens: AuthTokens - токены битрикса.
+        member_id: str - айди портала.
         meeting: MeetingModel - данные встречи.
         participants: ParticipantsModel - участники встречи.
     """
+    portal = await get_portal(session, memberId)
+    if not portal:
+        return KTalkBackAnswerModel(error='Портал не найден')
+
     # === Создание встречи КТолк ===
-    auth = await CRest.refresh_token(refresh_token=tokens.refresh_token)
-    portal = PortalModel(**auth)
     options = await get_all_options_bitrix_options(
         crest_instance=CRest,
         portal=portal
@@ -83,6 +90,8 @@ async def add_todo_activity(
     """
     selected_clients_dicts = [client.model_dump()
                               for client in participants.selectedClients]
+    meeting_str_date = MeetingStringDateModel(**dict(meeting))
+    print(meeting)
     call_request = CallRequest(
         method="crm.activity.todo.add",
         params={
@@ -90,7 +99,7 @@ async def add_todo_activity(
             'ownerId': owner_id,
             'title': meeting.subject,
             'description': meeting.description,
-            'deadline': meeting.end,
+            'deadline': meeting_str_date.end,
             'responsibleId': creator_id,
             'settings': [
                 {
@@ -98,8 +107,8 @@ async def add_todo_activity(
                     'id': 'link'
                 },
                 {
-                    'from': str_date_to_timestamp_in_millisec(meeting.start),
-                    'to': str_date_to_timestamp_in_millisec(meeting.end),
+                    'from': meeting.start,
+                    'to': meeting.end,
                     'duration': 1200000,
                     'location': '',
                     'selectedUserIds': participants.colleguesId,
