@@ -11,6 +11,10 @@ from src.router.utils import get_crest
 
 from src.logger.custom_logger import logger
 
+from environs import Env
+
+env = Env()
+
 router = APIRouter()
 
 
@@ -79,9 +83,106 @@ async def install(
     else:
         logger.info("Виджеты были уже установлены")
 
+    robot_created = await create_robot_request(
+        CRest=CRest,
+        portal=portal,
+        application_domain=env.str("APPLICATION_DOMAIN")
+    )
+    logger.info(robot_created)
+    if robot_created:
+        logger.info("Робот был создан")
+    else:
+        logger.info("Робот уже был создан")
+
     return HTMLResponse(content=html_content, status_code=200)
 
 
 @router.head("/install")
 async def head_install():
     return
+
+
+async def _get_portal(session, auth) -> PortalModel:
+    portal = await get_portal(session, auth["member_id"])
+    if portal:
+        portal.access_token = auth["access_token"]
+        portal.refresh_token = auth["refresh_token"]
+        await refresh_portal(session, portal)
+    else:
+        portal = PortalModel(
+            member_id=auth["member_id"],
+            client_endpoint=auth["client_endpoint"],
+            scope=auth["scope"],
+            access_token=auth["access_token"],
+            refresh_token=auth["refresh_token"]
+        )
+        await add_portal(session, portal)
+
+async def create_robot_request(
+    CRest: CRestBitrix24,
+    portal: PortalModel,
+    application_domain: str
+):
+    return await CRest.call(
+        CallRequest(
+            method="bizproc.robot.add",
+            params={
+                'CODE': 'ktalk_robot',
+                'HANDLER': f'{application_domain}/ktalk_robot',
+                'AUTH_USER_ID': 1,
+                'NAME': 'Робот КТолк',
+                "PROPERTIES": {
+                    "subject": {
+                        "name": "Тема встречи",
+                        "type": "string",
+                        "required": "Y"
+                    },
+                    "description": {
+                        "name": "Текст приглашения",
+                        "type": "string",
+                        "required": "Y"
+                    },
+                    "start": {
+                        "name": "Дата и время начала",
+                        "type": "datetime",
+                        "required": "Y"
+                    },
+                    "end": {
+                        "name": "Дата и время окончания",
+                        "type": "datetime",
+                        "required": "Y"
+                    },
+                    "timezone": {
+                        "name": "Часовой пояс",
+                        "type": "string",
+                        "required": "Y"
+                    },
+                    "allowAnonymous": {
+                        "name": "Подключение внешних пользователей",
+                        "type": "bool",
+                        "required": "Y"
+                    },
+                    "enableSip": {
+                        "name": "Подключение по звонку",
+                        "type": "bool",
+                        "required": "Y"
+                    },
+                    "enableAutoRecording": {
+                        "name": "Автоматическая запись встречи",
+                        "type": "bool",
+                        "required": "Y"
+                    },
+                    "pinCode": {
+                        "name": "Pin-код (от 4 до 6 цифр)",
+                        "type": "int",
+                        "required": "N"
+                    }
+                }
+            }
+        ),
+        client_endpoint=portal.client_endpoint,
+        auth_tokens=AuthTokens(
+            access_token=portal.access_token,
+            refresh_token=portal.refresh_token
+        )
+    )

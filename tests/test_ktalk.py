@@ -1,7 +1,7 @@
 from environs import Env
 from src.models import PortalModel
 from src.ktalk.requests import set_option_call, create_meeting, get_option_value_by_name, get_all_options_bitrix_options, set_options_call, get_all_options_dict
-from src.ktalk.models import MeetingModel, AppOptionModel
+from src.ktalk.models import MeetingModel, AppOptionModel, BitrixAppStorageModel
 from src.ktalk.utils import get_back_answer
 
 from src.ktalk.requests import set_options_call
@@ -19,11 +19,23 @@ body = {
     "start": 1724900580000,
     "end": 1724900589000,
     "timezone": "GMT+9",
-    "allowAnonymous": False,
-    "enableSip": False,
+    "allowAnonymous": True,
+    "enableSip": True,
     "pinCode": "",
     "enableAutoRecording": False,
-    "isRecurring": False
+    # "isRecurring": True
+}
+
+robot_body = {
+    "subject": "Созвон. По будням, в 20:00, только на СТС",
+    "description": "Пожалуйста, не подключайтесь!",
+    "start": "05.09.2024 23:30:23",
+    "end": "05.09.2024 23:35:23",
+    "timezone": "GMT+9",
+    "allowAnonymous": "Y",
+    "enableSip": "Y",
+    "enableAutoRecording": "Y",
+    "pinCode": 1233
 }
 
 
@@ -99,10 +111,28 @@ async def test_set_options_for_testing(get_portal: PortalModel):
     assert result
 
 
+async def test_get_all_options_bitrix_options(get_portal: PortalModel):
+    result = await get_all_options_bitrix_options(crest_auth, get_portal)
+    print(result)
+    assert isinstance(result, BitrixAppStorageModel)
+
+
 async def test_create_meeting(get_portal: PortalModel):
     meeting = MeetingModel(**body)
     options = await get_all_options_bitrix_options(crest_auth, get_portal)
     result = await create_meeting(meeting, options)
+    print(result)
+    back_ansswer = get_back_answer(ktalk_response=result, options=options)
+    print(back_ansswer)
+    assert result
+
+async def test_create_meeting_robot_body(get_portal: PortalModel):
+    meeting = MeetingModel(**robot_body)
+    print(meeting)
+    options = await get_all_options_bitrix_options(crest_auth, get_portal)
+    print(options)
+    result = await create_meeting(meeting, options)
+    print(result)
     back_ansswer = get_back_answer(ktalk_response=result, options=options)
     print(back_ansswer)
     assert result

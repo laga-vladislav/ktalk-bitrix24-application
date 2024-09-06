@@ -1,4 +1,3 @@
-from typing import AsyncGenerator
 from src.models import PortalModel
 from src.db.schemes import PortalScheme
 from sqlalchemy import select, update
@@ -8,6 +7,9 @@ from src.logger.custom_logger import logger
 
 
 async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
+    """
+    Добавить портал в базу данных
+    """
     try:
         session.add(PortalScheme(**dict(portal)))
         await session.commit()
@@ -17,6 +19,9 @@ async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
 
 
 async def get_portal(session: AsyncSession, member_id: str) -> PortalModel | None:
+    """
+    Получить портал из базы данных, либо None, если его нет
+    """
     result = await session.execute(select(PortalScheme).where(PortalScheme.member_id == member_id))
     portal_scheme = result.scalar()
     if portal_scheme:
@@ -27,5 +32,8 @@ async def get_portal(session: AsyncSession, member_id: str) -> PortalModel | Non
 
 
 async def refresh_portal(session: AsyncSession, portal: PortalModel) -> None:
+    """
+    Обновить данные портала в базе данных
+    """
     await session.execute(update(PortalScheme).where(PortalScheme.member_id == portal.member_id).values(**dict(portal)))
     await session.commit()

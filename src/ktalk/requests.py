@@ -2,7 +2,7 @@ from httpx import AsyncClient
 
 from crest.crest import CRestBitrix24
 from crest.models import CallRequest, AuthTokens
-from src.ktalk.models import MeetingModel, MeetingStringDateModel, BitrixAppStorageModel, AppOptionModel
+from src.ktalk.models import MeetingModel, MeetingKTalkFormatDateModel, BitrixAppStorageModel, AppOptionModel
 from src.models import PortalModel
 
 
@@ -120,7 +120,7 @@ async def get_all_options_bitrix_options(
 
 async def create_meeting(meeting: MeetingModel, app_options: BitrixAppStorageModel) -> dict:
     async with AsyncClient() as client:
-        meeting_str_date = MeetingStringDateModel(**dict(meeting))
+        meeting_str_date = MeetingKTalkFormatDateModel(**dict(meeting))
         space_name = app_options.space
         email = app_options.admin_email
         api_key = app_options.api_key

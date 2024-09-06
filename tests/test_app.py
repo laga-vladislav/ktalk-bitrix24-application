@@ -13,8 +13,7 @@ body = {
     "timezone": "GMT+9",
     "allowAnonymous": True,
     "enableSip": True,
-    "enableAutoRecording": True,
-    "isRecurring": False
+    "enableAutoRecording": True
 }
 
 
@@ -28,7 +27,7 @@ async def test_add_robot_auth(get_portal: PortalModel):
         CallRequest(
             method="bizproc.robot.add",
             params={
-                'CODE': 'robot',
+                'CODE': 'robotd',
                 'HANDLER': 'https://firstly-climbing-goat.ngrok-free.app/robot',
                 'AUTH_USER_ID': 1,
                 'NAME': 'Robot',
@@ -185,6 +184,7 @@ async def test_contact_add_method_auth_batch(get_portal: PortalModel):
 
 async def test_endpoint_create_meeting(ac: AsyncClient):
     meeting = MeetingModel(**body)
+    print(meeting)
     participants = ParticipantsModel(
         colleguesId=[1, 8],
         selectedClients=[
@@ -206,5 +206,5 @@ async def test_endpoint_create_meeting(ac: AsyncClient):
             "memberId": "43c4e7d9d8651368fb77cd2821e99926"
         }
     )
-    print(result)
+    print(result.json())
     assert result.status_code == 200
