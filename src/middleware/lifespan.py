@@ -12,9 +12,6 @@ from src.db.database import run_db
 async def lifespan(app: FastAPI):
     logger.info("Запуск сервера FastAPI")
 
-    # Создаем экземпляр CREST при инициализации приложения
-    CRest = None
-
     try:
         if os.getenv("CLIENT_ID") and os.getenv("CLIENT_SECRET"):
             logger.info("Активирован режим работы с приложениями")

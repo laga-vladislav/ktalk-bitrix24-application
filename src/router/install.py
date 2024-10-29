@@ -45,6 +45,7 @@ async def install(
 
     # Получаем обширную информацию с новыми токенами
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
+    print(new_auth)
 
     # ищем портал
     portal = await get_portal(session, new_auth["member_id"])

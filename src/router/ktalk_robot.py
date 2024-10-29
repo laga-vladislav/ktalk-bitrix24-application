@@ -22,6 +22,8 @@ async def handler(
 ):
     form_json = form_to_json(await request.form())
 
+    owner_id = form_json['document_id']['2'].split('_')[1]
+
     properties = form_json.get("properties")
     meeting = MeetingModel(**properties)
 
@@ -48,8 +50,8 @@ async def handler(
     todo_activity = await add_todo_activity(
         crest=CRest,
         portal=portal,
-        creator_id=meeting.creatorId,
-        owner_id=meeting.ownerId,
+        creator_id=auth['user_id'],
+        owner_id=owner_id,
         meeting=meeting,
         meeting_url=created_meeting.url,
         participants=...)

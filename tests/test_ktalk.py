@@ -86,6 +86,7 @@ async def test_get_all_options(get_portal: PortalModel):
         crest_instance=crest_auth,
         portal=get_portal
     )
+    print(result)
     assert isinstance(result, dict)
     assert result.get('pytest') == 'pytest'
 

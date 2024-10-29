@@ -12,7 +12,7 @@ async def add_todo_activity(
     owner_id: int,
     meeting: MeetingModel,
     meeting_url: str,
-    participants: ParticipantsModel,
+    participants: ParticipantsModel = None,
     owner_type_id: int = 2
 ):
     """
@@ -20,8 +20,8 @@ async def add_todo_activity(
     owner_id - id объекта CRM. Например, id сделки.
     owner_type_id - тип объекта CRM. Например, 2 - это сделка.
     """
-    selected_clients_dicts = [client.model_dump()
-                              for client in participants.selectedClients]
+    # selected_clients_dicts = [client.model_dump()
+    #                           for client in participants.selectedClients]
     # meeting_str_date = MeetingKTalkFormatDateModel(**dict(meeting))
     print(meeting)
     call_request = CallRequest(
@@ -43,11 +43,11 @@ async def add_todo_activity(
                     'to': meeting.end,
                     'duration': 1200000,
                     'location': '',
-                    'selectedUserIds': participants.colleguesId,
+                    # 'selectedUserIds': participants.colleguesId,
                     'id': 'calendar'
                 },
                 {
-                    'selectedClients': selected_clients_dicts,
+                    # 'selectedClients': selected_clients_dicts,
                     'id': 'client'
                 }
             ],
