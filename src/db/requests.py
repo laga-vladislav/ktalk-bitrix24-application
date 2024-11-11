@@ -11,7 +11,7 @@ async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
     Добавить портал в базу данных
     """
     try:
-        session.add(PortalScheme(**dict(portal)))
+        session.add(PortalScheme(**portal.model_dump()))
         await session.commit()
     except IntegrityError:
         logger.error(f"Портал с member_id '{
@@ -35,5 +35,5 @@ async def refresh_portal(session: AsyncSession, portal: PortalModel) -> None:
     """
     Обновить данные портала в базе данных
     """
-    await session.execute(update(PortalScheme).where(PortalScheme.member_id == portal.member_id).values(**dict(portal)))
+    await session.execute(update(PortalScheme).where(PortalScheme.member_id == portal.member_id).values(**portal.model_dump()))
     await session.commit()

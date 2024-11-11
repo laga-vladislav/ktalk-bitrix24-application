@@ -9,7 +9,7 @@ def _get_meeting_url(ktalk_response: dict, options: BitrixAppStorageModel) -> st
     try:
         pin_code = room['pinCode']
         return url + room_name + '?pinCode=' + pin_code
-    except KeyError:
+    except (KeyError, TypeError):
         return url + room_name
 
 

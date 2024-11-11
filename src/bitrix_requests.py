@@ -23,7 +23,6 @@ async def add_todo_activity(
     # selected_clients_dicts = [client.model_dump()
     #                           for client in participants.selectedClients]
     # meeting_str_date = MeetingKTalkFormatDateModel(**dict(meeting))
-    print(meeting)
     call_request = CallRequest(
         method="crm.activity.todo.add",
         params={
@@ -31,7 +30,7 @@ async def add_todo_activity(
             'ownerId': owner_id,
             'title': meeting.subject,
             'description': meeting.description,
-            'deadline': meeting.end,
+            'deadline': meeting.end_todo_activity,
             'responsibleId': creator_id,
             'settings': [
                 {
@@ -39,8 +38,8 @@ async def add_todo_activity(
                     'id': 'link'
                 },
                 {
-                    'from': meeting.start,
-                    'to': meeting.end,
+                    'from': meeting.start_ktalk,
+                    'to': meeting.end_ktalk,
                     'duration': 1200000,
                     'location': '',
                     # 'selectedUserIds': participants.colleguesId,

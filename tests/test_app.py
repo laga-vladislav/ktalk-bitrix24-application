@@ -112,6 +112,27 @@ async def test_add_activity_todo(get_portal: PortalModel):
     assert isinstance(result, dict)
 
 
+async def test_get_activities_todo(get_portal: PortalModel):
+    call = CallRequest(
+        method='crm.activity.list',
+        params={
+            'filter':
+            {
+                "OWNER_TYPE_ID": 2,
+                "OWNER_ID": 2
+            }
+        }
+    )
+    result = await crest_auth.call(
+        call,
+        client_endpoint=get_portal.client_endpoint,
+        auth_tokens=AuthTokens(
+            access_token=get_portal.access_token, refresh_token=get_portal.refresh_token)
+    )
+    print(result)
+
+
+
 async def test_get_contacts_from_deal(get_portal: PortalModel):
     """
     36465

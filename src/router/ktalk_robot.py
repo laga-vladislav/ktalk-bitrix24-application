@@ -55,6 +55,7 @@ async def handler(
         meeting=meeting,
         meeting_url=created_meeting.url,
         participants=...)
+    logger.info(todo_activity)
     # TODO: добавить участников в дело, определить, как получать айди сделки. Всё
 
     return created_meeting
