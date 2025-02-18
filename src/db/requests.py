@@ -1,9 +1,45 @@
-from src.models import PortalModel
-from src.db.schemes import PortalScheme
-from sqlalchemy import select, update
+from src.models import PortalModel, UserModel
+from src.db.schemes import PortalScheme, UserScheme
+from sqlalchemy import select, update, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from src.logger.custom_logger import logger
+
+
+async def add_user(session: AsyncSession, user: UserModel) -> None:
+    try:
+        session.add(UserScheme(**user.model_dump()))
+        await session.commit()
+    except IntegrityError:
+        logger.info(
+            f"Пользователь {user} уже существует. Запуск обновления"
+        )
+        await session.rollback()  # Сбрасываем состояние транзакции
+        await refresh_user(session, user)
+
+
+async def refresh_user(session: AsyncSession, user: UserModel) -> None:
+    try:
+        stmt = (
+            update(UserScheme).where(UserScheme.id == user.id,
+                                     UserScheme.member_id == user.member_id).values(**user.model_dump())
+        )
+        await session.execute(statement=stmt)
+        await session.commit()
+    except Exception as e:
+        logger.error(f"Ошибка при обновлении пользователя: {e}")
+        await session.rollback()  # Сбрасываем состояние транзакции в случае ошибки
+
+
+async def get_user(session: AsyncSession, id: int, member_id: str) -> UserModel:
+    try:
+        result = await session.execute(select(UserScheme).where(and_(UserScheme.id == id, UserScheme.member_id == member_id)))
+        user_scheme = result.scalar()
+        if user_scheme:
+            return UserModel(**user_scheme.__dict__)
+        return None
+    except Exception as e:
+        logger.error(f"Ошибка при получении пользователя: {e}")
 
 
 async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
