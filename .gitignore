@@ -1,6 +1,7 @@
 .venv
 .idea
 .env
+env
 __pycache__
 .php
 settings.json

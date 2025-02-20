@@ -1,3 +1,5 @@
+import os
+from dotenv import load_dotenv
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -14,6 +16,7 @@ from src.db.requests import add_user
 from src.router.utils import get_crest
 from src.logger.custom_logger import logger
 
+load_dotenv()
 
 router = APIRouter()
 
@@ -47,17 +50,19 @@ async def handler(
 
     token = create_jwt(user)
 
-    response = RedirectResponse(
-        url="https://front.gusevo-news.my")
-    response.set_cookie(key="jwt", value=token, domain=".gusevo-news.my", samesite="None", secure=True)
-    response.media_type = "application/json"
+    if user.is_admin:
+        response = RedirectResponse(url=os.getenv("FRONT_DOMAIN") + "/menu")
+    else:
+        response = RedirectResponse(url=os.getenv(
+            "FRONT_DOMAIN") + "/create-meeting")
 
-    return response
+    response.set_cookie(key="jwt",
+                        value=token,
+                        domain=os.getenv("FRONT_DOMAIN"),
+                        samesite="None",
+                        secure=True)
 
-    # if user.is_admin:
-    #     return HTMLResponse("<h1>Страница для администратора</h1>")
-    # else:
-    #     return HTMLResponse("<h1>Страница для пользователя</h1>")
+    return
 
 
 async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
