@@ -48,9 +48,9 @@ async def handler(
     token = create_jwt(user)
 
     response = RedirectResponse(
-        url="https://localhost:3000")
-    response.set_cookie(key="jwt", value=token,
-                        httponly=True, samesite="None", secure=True)
+        url="https://front.gusevo-news.my")
+    response.set_cookie(key="jwt", value=token, domain=".gusevo-news.my", samesite="None", secure=True)
+    response.media_type = "application/json"
 
     return response
 
