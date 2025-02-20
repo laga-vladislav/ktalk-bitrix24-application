@@ -19,7 +19,7 @@ from src.logger.custom_logger import logger
 router = APIRouter()
 
 
-@router.post("/create_meeting")
+@router.post("/create-meeting")
 async def handler(
     request: Request,
     creatorId: int,

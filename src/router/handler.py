@@ -1,8 +1,9 @@
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import RedirectResponse
 
+from src.auth import create_jwt
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.models import UserModel
@@ -21,10 +22,10 @@ router = APIRouter()
 async def handler(
     request: Request,
     CRest: CRestBitrix24 = Depends(get_crest),
-    user_refresh_token: str = Form(..., alias="REFRESH_ID"),
+    REFRESH_ID: str = Form(..., alias="REFRESH_ID"),
     session: AsyncGenerator = Depends(get_session),
 ):
-    full_auth = await CRest.refresh_token(user_refresh_token)
+    full_auth = await CRest.refresh_token(REFRESH_ID)
     logger.debug(full_auth)
 
     user_tokens = AuthTokens(
@@ -44,10 +45,19 @@ async def handler(
         user=user
     )
 
-    if user.is_admin:
-        return HTMLResponse("<h1>Страница для администратора</h1>")
-    else:
-        return HTMLResponse("<h1>Страница для пользователя</h1>")
+    token = create_jwt(user)
+
+    response = RedirectResponse(
+        url="https://localhost:3000")
+    response.set_cookie(key="jwt", value=token,
+                        httponly=True, samesite="None", secure=True)
+
+    return response
+
+    # if user.is_admin:
+    #     return HTMLResponse("<h1>Страница для администратора</h1>")
+    # else:
+    #     return HTMLResponse("<h1>Страница для пользователя</h1>")
 
 
 async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
