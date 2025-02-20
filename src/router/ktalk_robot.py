@@ -15,7 +15,7 @@ from src.logger.custom_logger import logger
 router = APIRouter()
 
 
-@router.post("/ktalk_robot")
+@router.post("/ktalk-robot")
 async def handler(
     request: Request,
     CRest: CRestBitrix24 = Depends(get_crest),
