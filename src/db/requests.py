@@ -50,8 +50,7 @@ async def add_portal(session: AsyncSession, portal: PortalModel | dict) -> None:
         session.add(PortalScheme(**portal.model_dump()))
         await session.commit()
     except IntegrityError:
-        logger.error(f"Портал с member_id '{
-                     portal['member_id']}' уже существует")
+        logger.error(f"Портал с member_id '{portal['member_id']}' уже существует")
 
 
 async def get_portal(session: AsyncSession, member_id: str) -> PortalModel | None:
