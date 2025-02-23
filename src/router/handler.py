@@ -62,7 +62,7 @@ async def handler(
                         samesite="None",
                         secure=True)
 
-    return
+    return response
 
 
 async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
