@@ -1,3 +1,4 @@
+from typing import List
 from crest.models import AuthTokens, CallRequest
 from src.models import PortalModel, UserModel
 from src.ktalk.models import MeetingModel
@@ -29,6 +30,18 @@ class MessageText:
             pin_code=pin_code,
             calendar_url=calendar_url
         )
+
+
+def _convert_to_app_options(bitrix_model: BitrixAppStorageModel) -> List[AppOptionModel]:
+    return [
+        AppOptionModel(option_name="space", option_data=bitrix_model.space),
+        AppOptionModel(option_name="api_key",
+                       option_data=bitrix_model.api_key),
+        AppOptionModel(option_name="admin_email",
+                       option_data=bitrix_model.admin_email),
+        AppOptionModel(option_name="member_id",
+                       option_data=bitrix_model.member_id)
+    ]
 
 
 async def set_option_call(
@@ -86,6 +99,15 @@ async def set_options_call(
         auth_tokens=tokens
     )
     return response
+
+
+async def set_options_bitrix_options(
+    crest_instance: CRestBitrix24,
+    portal: PortalModel,
+    options: BitrixAppStorageModel
+):
+    options = _convert_to_app_options(options)
+    await set_options_call(crest_instance, portal, options)
 
 
 async def get_option_value_by_name(
