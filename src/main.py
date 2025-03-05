@@ -3,13 +3,14 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from src.middleware.lifespan import lifespan  # noqa: E402
-from src.middleware.middleware import LogRequestDataMiddleware  # noqa: E402, F401
-from src.router import handler, install, placement, ktalk_robot, create_external_meeting, create_internal_meeting, verify_jwt  # noqa: E402
+from src.middleware.middleware import LogRequestDataMiddleware, JWTAuthMiddleware  # noqa: E402, F401
+from src.router import handler, install, placement, ktalk_robot, create_external_meeting, create_internal_meeting, verify_jwt, set_settings  # noqa: E402
 
 
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(LogRequestDataMiddleware)
+app.add_middleware(JWTAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("FRONT_DOMAIN")],
@@ -25,3 +26,4 @@ app.include_router(create_external_meeting.router)
 app.include_router(create_internal_meeting.router)
 app.include_router(ktalk_robot.router)
 app.include_router(verify_jwt.router)
+app.include_router(set_settings.router)

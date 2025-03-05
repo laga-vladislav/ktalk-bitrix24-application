@@ -7,10 +7,10 @@ from src.logger.custom_logger import logger
 SECRET_KEY = os.getenv("JWT_KEY")
 
 
-def create_jwt(user: UserModel) -> str:
+def create_jwt(user: UserModel, lifetime_in_hours: int = 1) -> str:
     payload = {
         **user.model_dump(mode="json"),
-        "exp": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=1)).timestamp()
+        "exp": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=lifetime_in_hours)).timestamp()
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
 
@@ -25,3 +25,15 @@ def verify_token(token: str):
     except jwt.InvalidTokenError:
         logger.error("JWT токен поврежден")
         return None
+
+
+async def get_current_user(authorization: str):
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer":
+        raise HTTPException(
+            status_code=401, detail="Invalid authorization scheme")
+
+    token_data = verify_token(token)
+    if not token_data:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return token_data
