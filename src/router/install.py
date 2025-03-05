@@ -8,6 +8,7 @@ from src.db.database import get_session
 from src.models import PortalModel
 from src.db.requests import get_portal, add_portal, refresh_portal
 from src.router.utils import get_crest
+from src.bitrix_requests import get_ktalk_company_calendar, create_ktalk_company_calendar, create_robot_request
 
 from src.logger.custom_logger import logger
 
@@ -81,17 +82,35 @@ async def install(
     is_done = result.get("result")
     if is_done:
         logger.info("Установка виджетов прошла успешно")
+        logger.debug(is_done)
     else:
         logger.info("Виджеты были уже установлены")
 
-    robot_created = await create_robot_request(
+    already_created_calendar = await get_ktalk_company_calendar(
+        crest=CRest,
+        portal=portal
+    )
+    if already_created_calendar:
+        logger.info("Календарь КТолк уже существует")
+    else:
+        created_calendar = await create_ktalk_company_calendar(
+            crest=CRest,
+            portal=portal
+        )
+        if created_calendar:
+            logger.info("Календарь КТолк успешно создан")
+            logger.debug(created_calendar)
+        else:
+            logger.error("Ошибка при создании календаря КТолк")
+
+    created_robot = await create_robot_request(
         CRest=CRest,
         portal=portal,
         application_domain=env.str("APPLICATION_DOMAIN")
     )
-    logger.info(robot_created)
-    if robot_created:
+    if created_robot:
         logger.info("Робот был создан")
+        logger.debug(created_robot)
     else:
         logger.info("Робот уже был создан")
 
@@ -101,89 +120,3 @@ async def install(
 @router.head("/install")
 async def head_install():
     return
-
-
-async def _get_portal(session, auth) -> PortalModel:
-    portal = await get_portal(session, auth["member_id"])
-    if portal:
-        portal.access_token = auth["access_token"]
-        portal.refresh_token = auth["refresh_token"]
-        await refresh_portal(session, portal)
-    else:
-        portal = PortalModel(
-            member_id=auth["member_id"],
-            client_endpoint=auth["client_endpoint"],
-            scope=auth["scope"],
-            access_token=auth["access_token"],
-            refresh_token=auth["refresh_token"]
-        )
-        await add_portal(session, portal)
-
-async def create_robot_request(
-    CRest: CRestBitrix24,
-    portal: PortalModel,
-    application_domain: str
-):
-    return await CRest.call(
-        CallRequest(
-            method="bizproc.robot.add",
-            params={
-                'CODE': 'ktalk_robot',
-                'HANDLER': f'{application_domain}/ktalk_robot',
-                'AUTH_USER_ID': 1,
-                'NAME': 'Робот КТолк',
-                "PROPERTIES": {
-                    "subject": {
-                        "name": "Тема встречи",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "description": {
-                        "name": "Текст приглашения",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "start": {
-                        "name": "Дата и время начала",
-                        "type": "datetime",
-                        "required": "Y"
-                    },
-                    "end": {
-                        "name": "Дата и время окончания",
-                        "type": "datetime",
-                        "required": "Y"
-                    },
-                    "timezone": {
-                        "name": "Часовой пояс",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "allowAnonymous": {
-                        "name": "Подключение внешних пользователей",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "enableSip": {
-                        "name": "Подключение по звонку",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "enableAutoRecording": {
-                        "name": "Автоматическая запись встречи",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "pinCode": {
-                        "name": "Pin-код (от 4 до 6 цифр)",
-                        "type": "int",
-                        "required": "N"
-                    }
-                }
-            }
-        ),
-        client_endpoint=portal.client_endpoint,
-        auth_tokens=AuthTokens(
-            access_token=portal.access_token,
-            refresh_token=portal.refresh_token
-        )
-    )

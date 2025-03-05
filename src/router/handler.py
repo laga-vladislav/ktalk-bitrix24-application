@@ -16,8 +16,6 @@ from src.db.requests import add_user
 from src.router.utils import get_crest
 from src.logger.custom_logger import logger
 
-load_dotenv()
-
 router = APIRouter()
 
 
@@ -62,7 +60,7 @@ async def handler(
                         samesite="None",
                         secure=True)
 
-    return
+    return response
 
 
 async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:

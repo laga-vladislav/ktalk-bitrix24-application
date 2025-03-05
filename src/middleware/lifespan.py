@@ -1,4 +1,5 @@
 import os
+from dotenv import load_dotenv
 
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -11,7 +12,7 @@ from src.db.database import run_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Запуск сервера FastAPI")
-
+    load_dotenv()
     try:
         if os.getenv("CLIENT_ID") and os.getenv("CLIENT_SECRET"):
             logger.info("Активирован режим работы с приложениями")

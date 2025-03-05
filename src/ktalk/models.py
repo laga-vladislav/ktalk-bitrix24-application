@@ -5,13 +5,6 @@ from pydantic import BaseModel, Field, field_validator
 from src.ktalk.validators import date_validator, timezone_validator, pincode_validator, bool_validator
 
 
-class BitrixAppStorageModel(BaseModel):
-    space: str
-    api_key: str
-    admin_email: str
-    member_id: str
-
-
 class MeetingModel(BaseModel):
     subject: str
     description: str
@@ -91,22 +84,6 @@ class MeetingModel(BaseModel):
                 "Дата должна быть в формате timestamp, 'dd.mm.yyyy HH:MM:SS' или '%Y-%m-%dT%H:%M:%SZ'")
 
         return int(dt.timestamp() * 1000), dt.strftime('%d.%m.%Y %H:%M:%S'), dt.strftime('%Y-%m-%dT%H:%M:%SZ')
-
-
-class SelectedClientsModel(BaseModel):
-    entityId: int
-    entityTypeId: int
-    isAvailable: bool = Field(default=True)
-
-
-class ParticipantsModel(BaseModel):
-    colleguesId: list[int]
-    selectedClients: list[SelectedClientsModel]
-
-
-class AppOptionModel(BaseModel):
-    option_name: str
-    option_data: str
 
 
 class KTalkBackAnswerModel(BaseModel):

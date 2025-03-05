@@ -7,8 +7,10 @@ from fastapi import APIRouter, Depends, Request
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 
-from src.ktalk.requests import get_all_options_bitrix_options, create_meeting
-from src.ktalk.models import MeetingModel, ParticipantsModel, KTalkBackAnswerModel
+from src.bitrix_requests import get_all_options_bitrix_options
+from src.ktalk.requests import create_meeting
+from src.models import ParticipantsModel
+from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 from src.ktalk.utils import get_back_answer
 
 from src.bitrix_requests import add_todo_activity
@@ -19,7 +21,7 @@ from src.logger.custom_logger import logger
 router = APIRouter()
 
 
-@router.post("/create-meeting")
+@router.post("/create-external-meeting")
 async def handler(
     request: Request,
     creatorId: int,

@@ -1,10 +1,10 @@
 from environs import Env
 from src.models import PortalModel
-from src.ktalk.requests import set_option_call, create_meeting, get_option_value_by_name, get_all_options_bitrix_options, set_options_call, get_all_options_dict
-from src.ktalk.models import MeetingModel, AppOptionModel, BitrixAppStorageModel
+from src.bitrix_requests import get_all_options_bitrix_options, set_options_call
+from src.ktalk.requests import create_meeting
+from src.models import AppOptionModel, BitrixAppStorageModel
+from src.ktalk.models import MeetingModel
 from src.ktalk.utils import get_back_answer
-
-from src.ktalk.requests import set_options_call
 
 from tests.conftest import crest_auth
 
@@ -16,14 +16,12 @@ option_data = "true"
 body = {
     "subject": "Созвон. По будням, в 20:00, только на СТС",
     "description": "Пожалуйста, не подключайтесь!",
-    "start": 1730269923192,
-    "end": 1735269923192,
-    "timezone": "GMT+9",
+    "start": 1741186653000,
+    "end": 1741197412000,
+    "timezone": "GMT+7",
     "allowAnonymous": True,
     "enableSip": True,
-    "pinCode": "",
-    "enableAutoRecording": False,
-    # "isRecurring": True
+    "enableAutoRecording": True
 }
 
 robot_body = {
@@ -40,6 +38,9 @@ robot_body = {
 
 
 async def test_set_options_for_testing(get_portal: PortalModel):
+    """
+    Только аднимистратор!
+    """
     options = [
         AppOptionModel(option_name='space',
                        option_data=env.str("KTALK_SPACE_NAME")),
@@ -61,6 +62,9 @@ async def test_set_options_for_testing(get_portal: PortalModel):
 
 
 async def test_get_all_options_bitrix_options(get_portal: PortalModel):
+    """
+    Только аднимистратор!
+    """
     result = await get_all_options_bitrix_options(crest_auth, get_portal)
     print(result)
     assert isinstance(result, BitrixAppStorageModel)

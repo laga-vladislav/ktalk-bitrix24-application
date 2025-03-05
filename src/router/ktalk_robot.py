@@ -2,7 +2,8 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 from src.ktalk.models import MeetingModel
-from src.ktalk.requests import create_meeting, get_all_options_bitrix_options
+from src.bitrix_requests import get_all_options_bitrix_options
+from src.ktalk.requests import create_meeting
 from src.ktalk.utils import get_back_answer
 from src.models import PortalModel
 from src.middleware.utils import parse_form_data

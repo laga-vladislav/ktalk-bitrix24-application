@@ -1,5 +1,6 @@
 from datetime import datetime
-from src.ktalk.models import KTalkBackAnswerModel, BitrixAppStorageModel
+from src.models import BitrixAppStorageModel
+from src.ktalk.models import KTalkBackAnswerModel
 
 
 def _get_meeting_url(ktalk_response: dict, options: BitrixAppStorageModel) -> str:
