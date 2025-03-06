@@ -70,8 +70,7 @@ class CRestBitrix24:
                 index = start + count
                 if index >= total_requests:
                     break
-                parameters["cmd"][f"request{
-                    index}"] = request_batch[index].get_path()
+                parameters["cmd"][f"request{index}"] = request_batch[index].get_path()
 
             # Назначение параметров запроса и отправка
             batch_CallRequest.params = parameters

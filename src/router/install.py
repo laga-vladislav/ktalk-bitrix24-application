@@ -8,8 +8,13 @@ from src.db.database import get_session
 from src.models import PortalModel
 from src.db.requests import get_portal, add_portal, refresh_portal
 from src.router.utils import get_crest
+from src.bitrix_requests import get_ktalk_company_calendar, create_ktalk_company_calendar, create_robot_request
 
 from src.logger.custom_logger import logger
+
+from environs import Env
+
+env = Env()
 
 router = APIRouter()
 
@@ -41,6 +46,7 @@ async def install(
 
     # Получаем обширную информацию с новыми токенами
     new_auth = await CRest.refresh_token(refresh_token=admin_refresh_token)
+    print(new_auth)
 
     # ищем портал
     portal = await get_portal(session, new_auth["member_id"])
@@ -76,8 +82,37 @@ async def install(
     is_done = result.get("result")
     if is_done:
         logger.info("Установка виджетов прошла успешно")
+        logger.debug(is_done)
     else:
         logger.info("Виджеты были уже установлены")
+
+    already_created_calendar = await get_ktalk_company_calendar(
+        crest=CRest,
+        portal=portal
+    )
+    if already_created_calendar:
+        logger.info("Календарь КТолк уже существует")
+    else:
+        created_calendar = await create_ktalk_company_calendar(
+            crest=CRest,
+            portal=portal
+        )
+        if created_calendar:
+            logger.info("Календарь КТолк успешно создан")
+            logger.debug(created_calendar)
+        else:
+            logger.error("Ошибка при создании календаря КТолк")
+
+    created_robot = await create_robot_request(
+        CRest=CRest,
+        portal=portal,
+        application_domain=env.str("APPLICATION_DOMAIN")
+    )
+    if created_robot:
+        logger.info("Робот был создан")
+        logger.debug(created_robot)
+    else:
+        logger.info("Робот уже был создан")
 
     return HTMLResponse(content=html_content, status_code=200)
 

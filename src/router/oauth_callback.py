@@ -11,7 +11,7 @@ from src.router.utils import get_crest
 router = APIRouter()
 
 
-@router.get("/oauth_callback")
+@router.get("/oauth-callback")
 async def aouth_get_code(
     CRest: CRestBitrix24 = Depends(get_crest), code: str = Query(...)
 ):

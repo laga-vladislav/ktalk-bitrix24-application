@@ -1,5 +1,7 @@
 .venv
+.idea
 .env
+env
 __pycache__
 .php
 settings.json
@@ -8,3 +10,4 @@ abc-test.py
 test.py
 *.sqlite3
 .pytest_cache
+*.swp

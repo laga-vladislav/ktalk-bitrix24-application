@@ -1,5 +1,6 @@
 from datetime import datetime
-from src.ktalk.models import KTalkBackAnswerModel, BitrixAppStorageModel
+from src.models import BitrixAppStorageModel
+from src.ktalk.models import KTalkBackAnswerModel
 
 
 def _get_meeting_url(ktalk_response: dict, options: BitrixAppStorageModel) -> str:
@@ -9,7 +10,7 @@ def _get_meeting_url(ktalk_response: dict, options: BitrixAppStorageModel) -> st
     try:
         pin_code = room['pinCode']
         return url + room_name + '?pinCode=' + pin_code
-    except KeyError:
+    except (KeyError, TypeError):
         return url + room_name
 
 
@@ -25,4 +26,6 @@ def get_back_answer(ktalk_response: dict, options: BitrixAppStorageModel) -> KTa
     sip_settings = _get_sip_settings(ktalk_response=ktalk_response)
     return KTalkBackAnswerModel(
         url=full_url, sipSettings=sip_settings
+    ) if sip_settings else KTalkBackAnswerModel(
+        url=full_url
     )
