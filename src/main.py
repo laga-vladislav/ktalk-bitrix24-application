@@ -1,81 +1,29 @@
-from fastapi import Depends, FastAPI, Query, Request
-from fastapi.responses import HTMLResponse
+import os
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from crest.crest import CRestBitrix24
-from crest.models import CallRequest
-from src.middleware.middleware import LogRequestDataMiddleware
-from src.middleware.lifespan import lifespan
-# from src.logger.custom_logger import logger
+from src.middleware.lifespan import lifespan  # noqa: E402
+from src.middleware.middleware import LogRequestDataMiddleware, JWTAuthMiddleware  # noqa: E402, F401
+from src.router import handler, install, placement, ktalk_robot, create_external_meeting, create_internal_meeting, get_payload, set_settings  # noqa: E402
 
 
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(LogRequestDataMiddleware)
+app.add_middleware(JWTAuthMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[os.getenv("FRONT_DOMAIN")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-
-def get_crest():
-    return app.state.CRest
-
-
-@app.post("/install")
-async def install(request: Request):
-    html_content = """
-        <!DOCTYPE html>
-        <html lang="ru">
-        <head>
-            <title>Installation</title>
-            <script src="//api.bitrix24.com/api/v1/"></script>
-            <script>
-                BX24.init(function(){
-                    BX24.installFinish();
-                });
-            </script>
-        </head>
-        <body>
-            <p>Installation finished</p>
-        </body>
-        </html>
-    """
-    return HTMLResponse(content=html_content, status_code=200)
-
-
-@app.post("/handler")
-async def handler(request: Request):
-    return request.state.body
-
-
-@app.get("/handler")
-async def aouth_get_code(
-    CRest: CRestBitrix24 = Depends(get_crest), code: str = Query(...)
-):
-    # можно брать code из middleware
-    # code = request.state.query_params.get('code')
-    result = await CRest.get_auth(code=code)
-    # parameters = {
-    #     "filter": {"NAME": "User40"},
-    #     "order": {"NAME": "DESC"},
-    # }
-    # callRequest = CallRequest(method="crm.contact.list", params=parameters)
-
-    # result = await CRest.call(
-    #     callRequest,
-    #     access_token=result["access_token"],
-    #     client_endpoint=result["client_endpoint"],
-    # )
-    # return result
-
-    call_batches = []
-    for i in range(200):
-        call_batches.append(
-            CallRequest(
-                method="crm.contact.add", params={"fields": {"NAME": f"UserNew{i}"}}
-            )
-        )
-
-    result = await CRest.call_batch(
-        call_batches,
-        client_endpoint=result["client_endpoint"],
-        access_token=result["access_token"],
-    )
-
-    return result
+app.include_router(handler.router)
+app.include_router(install.router)
+app.include_router(placement.router)
+app.include_router(create_external_meeting.router)
+app.include_router(create_internal_meeting.router)
+app.include_router(ktalk_robot.router)
+app.include_router(get_payload.router)
+app.include_router(set_settings.router)
