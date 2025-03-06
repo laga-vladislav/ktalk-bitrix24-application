@@ -262,14 +262,13 @@ async def create_ktalk_calendar_event(
         access_token=portal.access_token,
         refresh_token=portal.refresh_token
     )
-
     call = CallRequest(
         method='calendar.event.add',
         params={
             'type': 'company_calendar',
             'ownerId': 0,
-            'from_ts': meeting.start_ktalk,
-            'to_ts': meeting.start_ktalk,
+            'from_ts': meeting.start_todo_activity / 1000,
+            'to_ts': meeting.end_todo_activity / 1000,
             'section': calendar_id,
             'name': meeting.subject,
             'description': description

@@ -26,4 +26,6 @@ def get_back_answer(ktalk_response: dict, options: BitrixAppStorageModel) -> KTa
     sip_settings = _get_sip_settings(ktalk_response=ktalk_response)
     return KTalkBackAnswerModel(
         url=full_url, sipSettings=sip_settings
+    ) if sip_settings else KTalkBackAnswerModel(
+        url=full_url
     )

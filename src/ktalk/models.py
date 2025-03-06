@@ -6,6 +6,7 @@ from src.ktalk.validators import date_validator, timezone_validator, pincode_val
 
 
 class MeetingModel(BaseModel):
+    # TODO: неверные названия для типов даты
     subject: str
     description: str
     start: str | int = Field(
