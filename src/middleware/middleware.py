@@ -36,75 +36,54 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
 class LogRequestDataMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         raw_body = await request.body()
-
         logger_message = []
 
-        # Выводим метод запроса и URL
-        logger_message.append(
-            f"Поступил {request.method} запрос на {request.url.path}")
+        logger_message.append(f"Поступил {request.method} запрос на {request.url.path}")
         logger_message.append(f"URL: {request.url}")
 
-        # Выводим заголовки в формате JSON
         headers = dict(request.headers)
-
         headers_json = json.dumps(headers, indent=4, ensure_ascii=False)
         logger_message.append(f"Заголовки запроса:\n{headers_json}")
 
-        # Выводим параметры запроса
         query_params = dict(request.query_params)
-
-        query_params_json = json.dumps(
-            query_params, indent=4, ensure_ascii=False)
+        query_params_json = json.dumps(query_params, indent=4, ensure_ascii=False)
         logger_message.append(f"Параметры запроса:\n{query_params_json}")
 
-        # Тип содержимого тела запроса
-        content_type = request.headers.get("content-type")
+        content_type = request.headers.get("content-type", "")
         body = {}
-
-        # Если тело запроса в формате JSON
-        if content_type == "application/json":
-            body = await request.json()
-
-            body_json = json.dumps(body, indent=4, ensure_ascii=False)
-            logger_message.append(f"Тело запроса (JSON):\n{body_json}\n")
-
-        # Если тело запроса в формате Form Data
-        elif content_type == "application/x-www-form-urlencoded":
-            body = await request.form()
-            body = dict(body)
-            body = parse_form_data(body)
-
-            form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
-            logger_message.append(
-                f"Тело запроса (Form Data):\n{form_data_json}\n")
-
-        else:
-            logger_message.append(f"Тело запроса:\n{body}\n")
-
-        # Логирование информации о запросе
+        
+        # Проверка, есть ли тело у запроса и не является ли это preflight (OPTIONS) запросом
+        if request.method not in ("OPTIONS", "GET") and request.headers.get("content-length"):
+            if content_type == "application/json":
+                try:
+                    body = await request.json()
+                    body_json = json.dumps(body, indent=4, ensure_ascii=False)
+                    logger_message.append(f"Тело запроса (JSON):\n{body_json}\n")
+                except json.JSONDecodeError:
+                    logger_message.append("Ошибка парсинга JSON-тела запроса")
+            elif content_type == "application/x-www-form-urlencoded":
+                form_data = await request.form()
+                body = dict(form_data)
+                form_data_json = json.dumps(body, indent=4, ensure_ascii=False)
+                logger_message.append(f"Тело запроса (Form Data):\n{form_data_json}\n")
+            else:
+                logger_message.append(f"Тело запроса (неизвестный формат):\n{raw_body}\n")
+        
         logger.debug("\n".join(logger_message))
-        logger_message = []
+        logger_message.clear()
 
-        # Сохранение информации о запросе
         request.state.headers = headers
         request.state.query_params = query_params
         request.state.body = body
 
-        request._body = raw_body
-        # Передача запроса обработчику
+        request._body = raw_body  # Восстановление тела запроса для последующего использования
         response = await call_next(request)
 
-        # Логирование информации об ответе
         logger_message.append(f"Ответ на запрос {request.url.path}")
         logger_message.append(f"Статус ответа: {response.status_code}")
         response_headers = dict(response.headers)
-        response_headers_json = json.dumps(
-            response_headers, indent=4, ensure_ascii=False
-        )
+        response_headers_json = json.dumps(response_headers, indent=4, ensure_ascii=False)
         logger_message.append(f"Заголовки ответа:\n{response_headers_json}")
 
-        # Логирование информации о запросе
         logger.debug("\n".join(logger_message))
-        logger_message = []
-
         return response

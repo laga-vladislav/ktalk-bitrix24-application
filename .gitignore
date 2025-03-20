@@ -11,3 +11,4 @@ test.py
 *.sqlite3
 .pytest_cache
 *.swp
+create_jwt.py
