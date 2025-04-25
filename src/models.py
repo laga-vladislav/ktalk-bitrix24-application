@@ -32,27 +32,43 @@ class AppOptionModel(BaseModel):
     option_data: str
 
 
+
 class PortalModel(BaseModel):
     """
-    Администратор портала
+    Портал Bitrix24, подключённый к системе
     """
     member_id: str
     client_endpoint: str
     scope: str
-    access_token: str
-    refresh_token: str
-    updated_at: datetime | None = None
+
+
+class KtalkSpaceModel(BaseModel):
+    """
+    Интеграция портала с Ktalk
+    """
+    member_id: str
+    space: str
+    api_key: str
+    admin_email: str
 
 
 class UserModel(BaseModel):
     """
-    Пользователь портала, в том числе администраторы
+    Пользователь портала
     """
-    id: int
+    user_id: int
     member_id: str
     name: str
     last_name: str
     is_admin: bool
+
+
+class UserTokenModel(BaseModel):
+    """
+    Токены авторизации пользователя
+    """
+    user_id: int
+    member_id: str
     access_token: str
     refresh_token: str
-    updated_at: datetime | None = datetime.now(timezone.utc)
+    updated_at: datetime = datetime.now()

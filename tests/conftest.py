@@ -1,11 +1,9 @@
 import pytest
-import string
-import random
 from typing import AsyncGenerator
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from src.models import PortalModel
-from src.db.requests import add_portal, get_portal
 from src.db.schemes import Base
 
 from httpx import AsyncClient
@@ -13,6 +11,8 @@ from src.main import app
 
 from environs import Env
 from crest.crest import CRestBitrix24
+
+from tests.utils import prepare_tables
 
 env = Env()
 
@@ -26,6 +26,12 @@ async_session_maker = sessionmaker(
     engine_test, class_=AsyncSession, expire_on_commit=False)
 # Base.metadata.bind = engine_test
 
+@event.listens_for(engine_test.sync_engine, 'connect')
+def set_sqlite_pragma(dbapi_connection, connection_record):
+    cursor = dbapi_connection.cursor()
+    cursor.execute('pragma foreign_keys=ON')
+    cursor.close()
+
 
 @pytest.fixture(autouse=True, scope='session')
 async def prepare_database():
@@ -33,7 +39,12 @@ async def prepare_database():
         print("Preparing database...")
         await conn.run_sync(Base.metadata.create_all)
         print("Database is ready")
+
+    async with async_session_maker() as session:
+        await prepare_tables(session=session)
+
     yield
+
     async with engine_test.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
 
@@ -42,11 +53,6 @@ async def prepare_database():
 async def get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session
-
-
-def get_random_string(length: int = 10):
-    return ''.join(random.choices(string.ascii_uppercase +
-                                  string.digits, k=length))
 
 
 """
@@ -64,7 +70,7 @@ async def get_portal() -> PortalModel:
     """
     Установи здесь свой refresh_token
     """
-    auth = await crest_auth.refresh_token(refresh_token="0a9fee670072b5a200768c3a00000001605407f907e4b645f20587f5727a3c171b109e")
+    auth = await crest_auth.refresh_token(refresh_token="fc83ef670072b5a200768c3a000000016054070c106b9692e21905a710f113dd63cda4")
     #user c6a0ee670072b5a200768c3a00000005605407033a6cd5e8856de246b6e1e5780a962d
     #admin 0a9fee670072b5a200768c3a00000001605407f907e4b645f20587f5727a3c171b109e
     return PortalModel(
@@ -79,8 +85,6 @@ async def get_portal() -> PortalModel:
 """
 Настройки fastapi приложения
 """
-
-
 async def override_get_session() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_maker() as session:
         yield session

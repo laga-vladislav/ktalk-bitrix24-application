@@ -9,6 +9,7 @@ app.log*
 abc-test.py
 test.py
 *.sqlite3
+*.sqlite3-journal
 .pytest_cache
 *.swp
 create_jwt.py
