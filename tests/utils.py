@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from src.db.requests import add_portal, add_ktalk_space, add_user, _add_user_token
+from src.db.requests import add_portal, add_ktalk_space, add_user, _add_user_auth
 from tests.data import DatabaseTestData
 
 
@@ -10,5 +10,5 @@ async def prepare_tables(session: AsyncSession):
     print(f"Создано тестовое пространство КТолк: {DatabaseTestData.test_ktalk_space_data_model_correct}")
     await add_user(session, DatabaseTestData.test_user_data_model_correct)
     print(f"Создан тестовый пользователь: {DatabaseTestData.test_user_data_model_correct}")
-    await _add_user_token(session, DatabaseTestData.test_user_token_data_model_correct)
-    print(f"Создан тестовый токен: {DatabaseTestData.test_user_token_data_model_correct}")
+    await _add_user_auth(session, DatabaseTestData.test_user_auth_data_model_correct)
+    print(f"Создан тестовый токен: {DatabaseTestData.test_user_auth_data_model_correct}")

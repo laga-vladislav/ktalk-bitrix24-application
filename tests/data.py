@@ -1,7 +1,7 @@
 import random
 import string
 from dataclasses import dataclass
-from src.models import UserModel, KtalkSpaceModel, PortalModel, UserTokenModel
+from src.models import UserModel, KtalkSpaceModel, PortalModel, UserAuthModel
 
 
 def get_random_string(length: int = 10):
@@ -64,21 +64,24 @@ class DatabaseTestData:
     )
 
     # Токены
-    test_user_token_data_dict_correct = {
+    test_user_auth_data_dict_correct = {
         'user_id': test_user_data_model_correct.user_id,
         'member_id': test_user_data_model_correct.member_id,
         'access_token': get_random_string(),
-        'refresh_token': get_random_string()
+        'refresh_token': get_random_string(),
+        'client_endpoint': test_portal_data_model.client_endpoint
     }
-    test_user_token_data_model_correct = UserTokenModel(
-        **test_user_token_data_dict_correct
+    test_user_auth_data_model_correct = UserAuthModel(
+        **test_user_auth_data_dict_correct
     )
-    test_user_token_data_dict_incorrect = {
+    test_user_auth_data_dict_incorrect = {
         'user_id': random.randint(1, 100),
         'member_id': get_random_string(),
         'access_token': get_random_string(),
-        'refresh_token': get_random_string()
+        'refresh_token': get_random_string(),
+        'client_endpoint': get_random_string()
     }
-    test_user_token_data_model_incorrect = UserTokenModel(
-        **test_user_token_data_dict_incorrect
+    test_user_auth_data_model_incorrect = UserAuthModel(
+        **test_user_auth_data_dict_incorrect
     )
+    

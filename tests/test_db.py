@@ -4,7 +4,7 @@ from sqlalchemy.exc import IntegrityError
 from src.db.requests import add_portal, get_portal, refresh_portal
 from src.db.requests import add_ktalk_space, get_ktalk_space, refresh_ktalk_space
 from src.db.requests import add_user, get_user, refresh_user
-from src.db.requests import set_user_token, _add_user_token, get_user_token, _delete_user_token, _refresh_user_token
+from src.db.requests import set_user_auth, _add_user_auth, get_user_auth, _delete_user_auth, _refresh_user_auth
 
 from tests.data import DatabaseTestData as data
 from tests.data import get_random_string
@@ -129,67 +129,66 @@ class TestDatabase:
 
 
     """
-    User Token Section
+    User Auth Section
     """
-    async def test_add_user_token_correct(self, get_session):
-        user_token = data.test_user_token_data_model_correct.model_copy()
-        print(user_token)
+    async def test_add_user_auth_correct(self, get_session):
+        user_auth = data.test_user_auth_data_model_correct.model_copy()
+        print(user_auth)
 
-        await _delete_user_token(get_session, user_token)
-        await _add_user_token(get_session, user_token)
+        await _delete_user_auth(get_session, user_auth)
+        await _add_user_auth(get_session, user_auth)
         assert True
 
     
     async def test_add_user_token_incorrect(self, get_session):
-        user_token = data.test_user_token_data_model_incorrect.model_copy()
-        print(user_token)
+        user_auth = data.test_user_auth_data_model_incorrect.model_copy()
+        print(user_auth)
 
-        await _delete_user_token(get_session, user_token)
+        # await _delete_user_auth(get_session, user_auth)
         with pytest.raises(IntegrityError):
-            await _add_user_token(get_session, user_token)
+            await _add_user_auth(get_session, user_auth)
 
 
-    async def test_get_user_token(self, get_session):
+    async def test_get_user_auth(self, get_session):
         user = data.test_user_data_model_correct.model_copy()
-        user_token = data.test_user_token_data_model_correct.model_copy()
-        print(user_token)
-        user_token_from_db = await get_user_token(get_session, user)
-        print(user_token_from_db)
-        assert (user_token.access_token,
-                user_token.refresh_token) == (user_token_from_db.access_token,
-                                              user_token_from_db.refresh_token)
+        user_auth = data.test_user_auth_data_model_correct.model_copy()
+        print(user_auth)
+        user_auth_from_db = await get_user_auth(get_session, user)
+        print(user_auth_from_db)
+        assert (user_auth.access_token,
+                user_auth.refresh_token) == (user_auth_from_db.access_token,
+                                             user_auth_from_db.refresh_token)
         
 
-    async def test_update_tokens(self, get_session):
+    async def test_update_auth(self, get_session):
         user = data.test_user_data_model_correct.model_copy()
-        user_token = data.test_user_token_data_model_correct.model_copy()
-        print(user_token)
+        user_auth = data.test_user_auth_data_model_correct.model_copy()
+        print(user_auth)
 
-        new_user_token = user_token.model_copy()
-        new_user_token.access_token = get_random_string()
-        print(new_user_token)
+        new_user_auth = user_auth.model_copy()
+        new_user_auth.access_token = get_random_string()
+        print(new_user_auth)
 
-        await _refresh_user_token(get_session, new_user_token)
-        refreshed_user_token = await get_user_token(get_session, user)
-        assert user_token.access_token != refreshed_user_token.access_token
+        await _refresh_user_auth(get_session, new_user_auth)
+        refreshed_user_auth = await get_user_auth(get_session, user)
+        assert user_auth.access_token != refreshed_user_auth.access_token
 
 
-    async def test_set_user_token(self, get_session):
+    async def test_set_user_auth(self, get_session):
         user = data.test_user_data_model_correct.model_copy()
-        user_token = data.test_user_token_data_model_correct.model_copy()
-        print(user_token)
+        user_auth = data.test_user_auth_data_model_correct.model_copy()
+        print(user_auth)
 
         # Добавление
-        await _delete_user_token(get_session, user_token)
-        await set_user_token(get_session, user_token)
+        await _delete_user_auth(get_session, user_auth)
+        await set_user_auth(get_session, user_auth)
         assert True
 
         # Обновление
-        new_user_token = user_token.model_copy()
-        new_user_token.access_token = get_random_string()
-        await set_user_token(get_session, new_user_token)
-        refreshed_user_token = await get_user_token(get_session, user)
-        print(refreshed_user_token)
+        new_user_auth = user_auth.model_copy()
+        new_user_auth.access_token = get_random_string()
+        await set_user_auth(get_session, new_user_auth)
+        refreshed_user_auth = await get_user_auth(get_session, user)
+        print(refreshed_user_auth)
 
-        assert user_token.access_token != refreshed_user_token.access_token
-
+        assert user_auth.access_token != refreshed_user_auth.access_token

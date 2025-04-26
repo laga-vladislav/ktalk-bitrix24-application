@@ -1,6 +1,7 @@
-from src.models import PortalModel, UserModel, UserTokenModel, KtalkSpaceModel
-from src.db.schemes import PortalScheme, UserScheme, UserTokenScheme, KtalkSpaceScheme
+from src.models import PortalModel, UserModel, UserAuthModel, KtalkSpaceModel
+from src.db.schemes import PortalScheme, UserScheme, UserAuthScheme, KtalkSpaceScheme
 from sqlalchemy import select, update, delete, and_
+from sqlalchemy.orm import joinedload
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from src.logger.custom_logger import logger
@@ -123,48 +124,57 @@ async def get_user(session: AsyncSession, user_id: int, member_id: str) -> UserM
         raise
 
 
-async def set_user_token(session: AsyncSession, token: UserTokenModel):
+async def set_user_auth(session: AsyncSession, auth: UserAuthModel):
     """
-    Основной метод для работы с токенами.
-    При отсутствии токена - добавляет в базу данных,
-    При наличии токена - обновляет
+    Основной метод для работы с авторизацией.
+    При отсутствии данных авторизации - добавляет в базу данных,
+    При наличии данных - обновляет
     """
     try:
-        existing = await get_user_token(session, UserModel(user_id=token.user_id, member_id=token.member_id, name="", last_name="", is_admin=False))
+        existing = await get_user_auth(session, UserModel(user_id=auth.user_id, member_id=auth.member_id, name="", last_name="", is_admin=False))
         if existing:
-            await _refresh_user_token(session, token)
+            await _refresh_user_auth(session, auth)
         else:
-            await _add_user_token(session, token)
+            await _add_user_auth(session, auth)
     except Exception as e:
         logger.error(f"Ошибка при установке токена пользователя: {e}")
         raise
 
-async def _add_user_token(session: AsyncSession, token: UserTokenModel):
+async def _add_user_auth(session: AsyncSession, auth: UserAuthModel):
     try:
-        session.add(UserTokenScheme(**token.model_dump()))
+        session.add(UserAuthScheme(**auth.model_dump()))
         await session.commit()
     except IntegrityError as e:
-        logger.error(f"Ошибка при добавлении токена пользователя: {e}")
+        logger.error(f"Ошибка при добавлении данных авторизации пользователя: {e}")
         await session.rollback()
         raise
 
-async def get_user_token(session: AsyncSession, user: UserModel) -> UserTokenModel | None:
+async def get_user_auth(session: AsyncSession, user: UserModel) -> UserAuthModel | None:
     try:
-        result = await session.execute(select(UserTokenScheme).where(and_(UserTokenScheme.user_id == user.user_id, UserTokenScheme.member_id == user.member_id)))
-        user_token_scheme = result.scalar()
+        result = await session.execute(
+            select(UserAuthScheme)
+            .options(joinedload(UserAuthScheme.portal))  # Подгружаем portal
+            .where(
+                and_(
+                    UserAuthScheme.user_id == user.user_id,
+                    UserAuthScheme.member_id == user.member_id
+                )
+            )
+        )
+        user_token_scheme = result.scalars().first()
         if user_token_scheme:
-            return UserTokenModel(**user_token_scheme.__dict__)
+            return UserAuthModel(**user_token_scheme.to_dict())
         return None
     except Exception as e:
         logger.error(f"Ошибка при получении токена пользователя: {e}")
         raise
 
-async def _refresh_user_token(session: AsyncSession, user_token: UserTokenModel):
+async def _refresh_user_auth(session: AsyncSession, auth: UserAuthModel):
     try:
         stmt = (
-            update(UserTokenScheme).where(UserTokenScheme.user_id == user_token.user_id,
-                                          UserTokenScheme.member_id == user_token.member_id).values(
-                                              **user_token.model_dump()
+            update(UserAuthScheme).where(UserAuthScheme.user_id == auth.user_id,
+                                          UserAuthScheme.member_id == auth.member_id).values(
+                                              **auth.model_dump()
                                           )
         )
         await session.execute(statement=stmt)
@@ -174,10 +184,10 @@ async def _refresh_user_token(session: AsyncSession, user_token: UserTokenModel)
         await session.rollback()
         raise
 
-async def _delete_user_token(session: AsyncSession, user_token: UserTokenModel):
+async def _delete_user_auth(session: AsyncSession, auth: UserAuthModel):
     try:
-        await session.execute(delete(UserTokenScheme).where(UserTokenScheme.user_id == user_token.user_id,
-                                                            UserTokenScheme.member_id == user_token.member_id))
+        await session.execute(delete(UserAuthScheme).where(UserAuthScheme.user_id == auth.user_id,
+                                                            UserAuthScheme.member_id == auth.member_id))
         await session.commit()        
     except Exception as e:
         logger.error(f"Ошибка при удалении токеа пользователя: {e}")

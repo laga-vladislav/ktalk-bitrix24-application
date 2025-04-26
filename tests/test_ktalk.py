@@ -1,8 +1,9 @@
 from environs import Env
 from src.models import PortalModel
-from src.bitrix_requests import get_all_options_bitrix_options, set_options_call
+# from src.bitrix_requests import get_all_options_bitrix_options, set_options_call
+from src.db.requests import get_ktalk_space, add_ktalk_space
 from src.ktalk.requests import create_meeting
-from src.models import AppOptionModel, BitrixAppStorageModel
+from src.models import KtalkSpaceModel
 from src.ktalk.models import MeetingModel
 from src.ktalk.utils import get_back_answer
 
@@ -37,42 +38,9 @@ robot_body = {
 }
 
 
-async def test_set_options_for_testing(get_portal: PortalModel):
-    """
-    Только аднимистратор!
-    """
-    options = [
-        AppOptionModel(option_name='space',
-                       option_data=env.str("KTALK_SPACE_NAME")),
-        AppOptionModel(option_name='api_key',
-                       option_data=env.str("KTALK_API_KEY")),
-        AppOptionModel(option_name='admin_email',
-                       option_data=env.str("KTALK_ADMIN_EMAIL")),
-        AppOptionModel(option_name='member_id',
-                       option_data=get_portal.member_id)
-    ]
-    # Если не работает токен - запусти приложение, чтобы обновить запись в БД. Временная мера
-    result = await set_options_call(
-        crest_instance=crest_auth,
-        portal=get_portal,
-        options=options
-    )
-    print(result)
-    assert result
-
-
-async def test_get_all_options_bitrix_options(get_portal: PortalModel):
-    """
-    Только аднимистратор!
-    """
-    result = await get_all_options_bitrix_options(crest_auth, get_portal)
-    print(result)
-    assert isinstance(result, BitrixAppStorageModel)
-
-
 async def test_create_meeting(get_portal: PortalModel):
     meeting = MeetingModel(**body)
-    options = await get_all_options_bitrix_options(crest_auth, get_portal)
+    options = await get_ktalk_space(crest_auth, get_portal)
     result = await create_meeting(meeting, options)
     print(result)
     back_ansswer = get_back_answer(ktalk_response=result, options=options)
@@ -82,7 +50,7 @@ async def test_create_meeting(get_portal: PortalModel):
 async def test_robot_create_meeting(get_portal: PortalModel):
     meeting = MeetingModel(**robot_body)
     print(meeting)
-    options = await get_all_options_bitrix_options(crest_auth, get_portal)
+    options = await get_ktalk_space(crest_auth, get_portal)
     print(options)
     result = await create_meeting(meeting, options)
     print(result)

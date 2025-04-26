@@ -17,7 +17,7 @@ class PortalScheme(Base):
 
     ktalk_space = relationship("KtalkSpaceScheme", back_populates="portal")
     user = relationship("UserScheme", back_populates="portal")
-    user_token = relationship("UserTokenScheme", back_populates="portal", overlaps="user")
+    user_auth = relationship("UserAuthScheme", back_populates="portal", overlaps="user")
 
 
 class KtalkSpaceScheme(Base):
@@ -49,15 +49,16 @@ class UserScheme(Base):
     is_admin: Mapped[bool] = mapped_column(Boolean, nullable=False)
 
     portal = relationship("PortalScheme", back_populates="user")
-    user_token = relationship(
-        "UserTokenScheme",
+    user_auth = relationship(
+        "UserAuthScheme",
         back_populates="user",
-        overlaps="portal,user_token",
+        overlaps="portal,user_auth",
         uselist=False
     )
 
-class UserTokenScheme(Base):
-    __tablename__ = 'user_token'
+
+class UserAuthScheme(Base):
+    __tablename__ = 'user_auth'
 
     member_id: Mapped[str] = mapped_column(String, primary_key=True)
     user_id: Mapped[int] = mapped_column(Integer, primary_key=True)
@@ -71,18 +72,28 @@ class UserTokenScheme(Base):
         ForeignKeyConstraint(
             ['user_id', 'member_id'],
             ['user.user_id', 'user.member_id'],
-            name='fk_user_token_user',
+            name='fk_user_auth_user',
             onupdate="CASCADE",
             ondelete="CASCADE"
         ),
         ForeignKeyConstraint(
             ['member_id'],
             ['portal.member_id'],
-            name='fk_user_token_portal',
+            name='fk_user_auth_portal',
             onupdate="CASCADE",
             ondelete="CASCADE"
         ),
     )
 
-    user = relationship("UserScheme", back_populates="user_token", overlaps="portal")
-    portal = relationship("PortalScheme", back_populates="user_token", overlaps="user")
+    user = relationship("UserScheme", back_populates="user_auth", overlaps="portal")
+    portal = relationship("PortalScheme", back_populates="user_auth", overlaps="user")
+
+    @property
+    def client_endpoint(self):
+        return self.portal.client_endpoint
+    
+    def to_dict(self):
+        data = {c.name: getattr(self, c.name) for c in self.__table__.columns}
+        data['client_endpoint'] = self.client_endpoint
+        return data
+    
