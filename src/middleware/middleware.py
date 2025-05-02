@@ -6,7 +6,6 @@ from fastapi import Request, HTTPException, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.auth import verify_token
-from src.middleware.utils import parse_form_data
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):

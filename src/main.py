@@ -10,7 +10,7 @@ from src.router import handler, install, placement, ktalk_robot, create_external
 app = FastAPI(lifespan=lifespan)
 
 app.add_middleware(LogRequestDataMiddleware)
-app.add_middleware(JWTAuthMiddleware)
+# app.add_middleware(JWTAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
