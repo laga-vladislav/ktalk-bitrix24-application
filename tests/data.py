@@ -1,7 +1,11 @@
 import random
 import string
+import json
+import datetime    
+from pathlib import Path
 from dataclasses import dataclass
 from src.models import UserModel, KtalkSpaceModel, PortalModel, UserAuthModel
+from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 
 
 def get_random_string(length: int = 10):
@@ -9,8 +13,28 @@ def get_random_string(length: int = 10):
                                   string.digits, k=length))
 
 
+STORAGE_PATH = Path("tests/data.json")
+dt = datetime.datetime.now()
+CURRENT_TIMESTAMP_MS = (int(dt.timestamp()) * 1000)
+
+def load_persistent_data():
+    if STORAGE_PATH.exists():
+        with open(STORAGE_PATH, 'r') as f:
+            return json.load(f)
+    return {}
+
+def save_persistent_data(data_dict):
+    with open(STORAGE_PATH, 'w') as f:
+        json.dump(data_dict, f, indent=4)
+
+_persistent_data = load_persistent_data()
+
+
 @dataclass
 class DatabaseTestData:
+    """
+    Данные, необходимый для тестирования базы данных.
+    """
     # Портал
     test_portal_data_dict = {
         'member_id': get_random_string(),
@@ -85,3 +109,36 @@ class DatabaseTestData:
         **test_user_auth_data_dict_incorrect
     )
     
+
+@dataclass
+class KTalkTestData:
+    calendar_name: str = 'Календарь встреч КТолк'
+    calendar_id: int = _persistent_data.get("calendar_id")
+    meeting_dict = {
+        "subject": "Созвон. По будням, в 20:00, только на СТС",
+        "description": "Пожалуйста, не подключайтесь!",
+        "start": CURRENT_TIMESTAMP_MS,
+        "end": CURRENT_TIMESTAMP_MS + 5000000,
+        "timezone": "GMT+9",
+        "allowAnonymous": True,
+        "enableSip": True,
+        "enableAutoRecording": True
+    }
+    meeting_model = MeetingModel(**meeting_dict)
+    meeting_information_back_answer = KTalkBackAnswerModel(
+        url='example.com'
+    )
+    meeting_id: int = _persistent_data.get("meeting_id")
+    company_id: int = _persistent_data.get("company_id")
+    contact_id: int = _persistent_data.get("contact_id")
+    deal_id: int = _persistent_data.get("deal_id")
+
+    @staticmethod
+    def save():
+        save_persistent_data({
+            "calendar_id": KTalkTestData.calendar_id,
+            "meeting_id": KTalkTestData.meeting_id,
+            "company_id": KTalkTestData.company_id,
+            "contact_id": KTalkTestData.contact_id,
+            "deal_id": KTalkTestData.deal_id
+        })

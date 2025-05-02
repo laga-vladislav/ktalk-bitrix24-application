@@ -1,6 +1,8 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
+from src.models import KtalkSpaceModel
+
 from src.db.requests import add_portal, get_portal, refresh_portal
 from src.db.requests import add_ktalk_space, get_ktalk_space, refresh_ktalk_space
 from src.db.requests import add_user, get_user, refresh_user
@@ -90,6 +92,10 @@ class TestDatabase:
 
         refreshed_ktalk_space = await get_ktalk_space(get_session, portal)
         assert ktalk_space.space != refreshed_ktalk_space.space
+
+
+    # async def test_add_real_ktalk_space(self, get_session, get_ktalk_space: KtalkSpaceModel):
+    #     await add_ktalk_space(get_session, get_ktalk_space)
 
 
     """
