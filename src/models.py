@@ -1,19 +1,13 @@
-from datetime import datetime, timezone
-from pydantic import BaseModel, Field, AliasPath
+from datetime import datetime
+from pydantic import BaseModel, Field
 
 
 class BitrixCalendarModel(BaseModel):
     id: int = Field(..., alias="ID")
     name: str = Field(..., alias="NAME")
     description: str = Field(..., alias="DESCRIPTION")
-    link: str = Field(..., validation_alias=AliasPath('EXPORT', 'LINK'))
-
-
-class BitrixAppStorageModel(BaseModel):
-    space: str
-    api_key: str
-    admin_email: str
-    member_id: str
+    # link: str = Field(..., validation_alias=AliasPath('EXPORT', 'LINK'))
+    # ссылка оказалась ссылкой на экспорт, кто бы мог подумать. Вырезал
 
 
 class SelectedClientsModel(BaseModel):
@@ -25,12 +19,6 @@ class SelectedClientsModel(BaseModel):
 class ParticipantsModel(BaseModel):
     colleguesId: list[int]
     selectedClients: list[SelectedClientsModel]
-
-
-class AppOptionModel(BaseModel):
-    option_name: str
-    option_data: str
-
 
 
 class PortalModel(BaseModel):
@@ -63,12 +51,13 @@ class UserModel(BaseModel):
     is_admin: bool
 
 
-class UserTokenModel(BaseModel):
+class UserAuthModel(BaseModel):
     """
-    Токены авторизации пользователя
+    Данные  пользователя
     """
     user_id: int
     member_id: str
+    client_endpoint: str = Field(exclude=True)
     access_token: str
     refresh_token: str
-    updated_at: datetime = datetime.now()
+    updated_at: datetime = Field(default=datetime.now())

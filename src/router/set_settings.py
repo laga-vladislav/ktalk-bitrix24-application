@@ -1,25 +1,19 @@
 from typing import AsyncGenerator
 
-from fastapi import APIRouter, Body, Depends, Response
+from fastapi import APIRouter, Depends, Response
 
-from crest.crest import CRestBitrix24
 from src.db.database import get_session
-from src.db.requests import get_portal
-from src.router.utils import get_crest
-from src.models import BitrixAppStorageModel
-from src.bitrix_requests import set_options_bitrix_options
+from src.db.requests import add_ktalk_space
+from src.models import KtalkSpaceModel
 
 router = APIRouter()
 
 
 @router.post("/set-settings")
 async def handler(
-    options: BitrixAppStorageModel,
-    CRest: CRestBitrix24 = Depends(get_crest),
+    ktalk_space: KtalkSpaceModel,
     session: AsyncGenerator = Depends(get_session),
 ):
-    portal = await get_portal(session=session, member_id=options.member_id)
-
-    await set_options_bitrix_options(CRest, portal, options)
+    await add_ktalk_space(session=session, ktalk_space=ktalk_space)
 
     return Response(status_code=200)

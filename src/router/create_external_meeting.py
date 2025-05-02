@@ -7,9 +7,9 @@ from fastapi import APIRouter, Depends, Request
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 
-from src.bitrix_requests import get_all_options_bitrix_options
+from src.db.requests import get_ktalk_space
 from src.ktalk.requests import create_meeting
-from src.models import ParticipantsModel
+from src.models import ParticipantsModel, KtalkSpaceModel
 from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 from src.ktalk.utils import get_back_answer
 
@@ -46,19 +46,16 @@ async def handler(
         return KTalkBackAnswerModel(error='Портал не найден')
 
     # === Создание встречи КТолк ===
-    options = await get_all_options_bitrix_options(
-        crest_instance=CRest,
-        portal=portal
-    )
-    if not options:
+    ktalk_space: KtalkSpaceModel = await get_ktalk_space(session=session, portal=portal)
+    if not ktalk_space:
         return KTalkBackAnswerModel(error='Не удалось получить настройки пространства КТолк')
 
     ktalk_response = await create_meeting(
         meeting=meeting,
-        app_options=options
+        ktalk_space=ktalk_space
     )
     back_answer_to_front = get_back_answer(
-        ktalk_response=ktalk_response, options=options)
+        ktalk_response=ktalk_response, ktalk_space=ktalk_space)
     logger.info(f'Была создана встреча: {back_answer_to_front}')
     # ======
 

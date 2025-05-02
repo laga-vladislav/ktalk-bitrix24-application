@@ -1,6 +1,8 @@
 .venv
 .idea
 .env
+.env.test
+data.json
 env
 __pycache__
 .php

@@ -1,12 +1,16 @@
+from typing import AsyncGenerator
+
 from fastapi import APIRouter, Depends, Request, HTTPException
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 from src.ktalk.models import MeetingModel
-from src.bitrix_requests import get_all_options_bitrix_options
 from src.ktalk.requests import create_meeting
 from src.ktalk.utils import get_back_answer
 from src.models import PortalModel
 from src.middleware.utils import parse_form_data
+
+from src.db.database import get_session
+from src.db.requests import get_ktalk_space
 
 from src.bitrix_requests import add_todo_activity
 
@@ -20,6 +24,7 @@ router = APIRouter()
 async def handler(
     request: Request,
     CRest: CRestBitrix24 = Depends(get_crest),
+    session: AsyncGenerator = Depends(get_session),
 ):
     form_json = form_to_json(await request.form())
 
@@ -31,18 +36,15 @@ async def handler(
     auth = form_json.get("auth")
     portal = PortalModel(**auth)
 
-    options = await get_all_options_bitrix_options(
-        crest_instance=CRest,
-        portal=portal
-    )
-    if not options:
+    ktalk_space = await get_ktalk_space(session=session, portal=portal)
+    if not ktalk_space:
         return HTTPException(500, detail="Настройки КТолк не найдены")
 
     created_meeting_result = await create_meeting(
         meeting=meeting,
-        app_options=options
+        ktalk_space=ktalk_space
     )
-    created_meeting = get_back_answer(created_meeting_result, options)
+    created_meeting = get_back_answer(created_meeting_result, ktalk_space)
     logger.info(f'Ботом была создана встреча: {created_meeting}')
 
     if created_meeting.error:

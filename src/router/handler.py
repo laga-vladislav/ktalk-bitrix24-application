@@ -14,6 +14,7 @@ from src.db.database import get_session
 from src.db.requests import add_user
 
 from src.router.utils import get_crest
+from src.bitrix_requests import get_user_info
 from src.logger.custom_logger import logger
 
 router = APIRouter()
@@ -63,35 +64,21 @@ async def handler(
     return response
 
 
-async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
-    inforeq = CallRequest(method="user.current")
-    user_info = await CRest.call(
-        request=inforeq,
-        auth_tokens=tokens,
-        client_endpoint=client_endpoint
-    )
-    is_admin = await get_admin_status(CRest, tokens, client_endpoint)
-    return UserModel(
-        member_id=member_id,
-        id=user_info['result']['ID'],
-        name=user_info['result']['NAME'],
-        last_name=user_info['result']['LAST_NAME'],
-        is_admin=is_admin,
-        access_token=tokens.access_token,
-        refresh_token=tokens.refresh_token
-    )
-
-
-async def get_admin_status(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str) -> bool:
-    callreq = CallRequest(method="user.admin")
-    result = await CRest.call(
-        callreq,
-        auth_tokens=tokens,
-        client_endpoint=client_endpoint
-    )
-    return result.get("result")
-
-
 @router.head("/handler")
 async def head_handler():
     return
+
+
+async def _add_user(CRest: CRestBitrix24, session: AsyncGenerator, user_auth: dict):
+    user = await get_user_info(
+        CRest=CRest,
+        tokens=AuthTokens(access_token=user_auth['access_token'], refresh_token=user_auth['refresh_token']),
+        client_endpoint=user_auth["client_endpoint"],
+        member_id=user_auth["member_id"]
+    )
+    logger.debug(user)
+
+    await add_user(
+        session=session,
+        user=user
+    )

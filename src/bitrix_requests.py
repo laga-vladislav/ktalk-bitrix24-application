@@ -1,9 +1,9 @@
 from typing import List
 from crest.models import AuthTokens, CallRequest
-from src.models import PortalModel, UserModel
+from src.models import PortalModel, UserModel, UserAuthModel
 from src.ktalk.models import MeetingModel
 from crest.crest import CRestBitrix24
-from src.models import ParticipantsModel, AppOptionModel, BitrixAppStorageModel, BitrixCalendarModel
+from src.models import ParticipantsModel, BitrixCalendarModel
 from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 
 from src.logger.custom_logger import logger
@@ -32,154 +32,44 @@ class MessageText:
         )
 
 
-def _convert_to_app_options(bitrix_model: BitrixAppStorageModel) -> List[AppOptionModel]:
-    return [
-        AppOptionModel(option_name="space", option_data=bitrix_model.space),
-        AppOptionModel(option_name="api_key",
-                       option_data=bitrix_model.api_key),
-        AppOptionModel(option_name="admin_email",
-                       option_data=bitrix_model.admin_email),
-        AppOptionModel(option_name="member_id",
-                       option_data=bitrix_model.member_id)
-    ]
-
-
-async def set_option_call(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel,
-    option_name: str,
-    option_data: str
-):
-    endpoint = portal.client_endpoint
-    tokens = AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
+    inforeq = CallRequest(method="user.current")
+    user_info = await CRest.call(
+        request=inforeq,
+        auth_tokens=tokens,
+        client_endpoint=client_endpoint
+    )
+    is_admin = await get_admin_status(CRest, tokens, client_endpoint)
+    return UserModel(
+        member_id=member_id,
+        user_id=int(user_info['result']['ID']),
+        name=user_info['result']['NAME'],
+        last_name=user_info['result']['LAST_NAME'],
+        is_admin=bool(is_admin)
     )
 
-    response = await crest_instance.call(
-        CallRequest(
-            method="app.option.set",
-            params={
-                'options': {
-                    option_name: option_data
-                }
-            }
-        ),
-        client_endpoint=endpoint,
-        auth_tokens=tokens
+
+async def get_admin_status(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str) -> bool:
+    callreq = CallRequest(method="user.admin")
+    result = await CRest.call(
+        callreq,
+        auth_tokens=tokens,
+        client_endpoint=client_endpoint
     )
-    return response
-
-
-async def set_options_call(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel,
-    options: list[AppOptionModel]
-):
-    endpoint = portal.client_endpoint
-    tokens = AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
-    )
-
-    params = {
-        'options': {}
-    }
-    for option in options:
-        params['options'][option.option_name] = option.option_data
-
-    request = CallRequest(
-        method="app.option.set",
-        params=params
-    )
-
-    response = await crest_instance.call(
-        request,
-        client_endpoint=endpoint,
-        auth_tokens=tokens
-    )
-    return response
-
-
-async def set_options_bitrix_options(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel,
-    options: BitrixAppStorageModel
-):
-    options = _convert_to_app_options(options)
-    await set_options_call(crest_instance, portal, options)
-
-
-async def get_option_value_by_name(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel,
-    option_name: str
-) -> str:
-    endpoint = portal.client_endpoint
-    tokens = AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
-    )
-
-    response = await crest_instance.call(
-        CallRequest(
-            method="app.option.get",
-            params={
-                'option': option_name
-            }
-        ),
-        client_endpoint=endpoint,
-        auth_tokens=tokens
-    )
-    return response.get('result') if response.get('result') else ''
-
-
-async def get_all_options_dict(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel
-) -> dict:
-    endpoint = portal.client_endpoint
-    tokens = AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
-    )
-
-    response = await crest_instance.call(
-        CallRequest(
-            method="app.option.get"
-        ),
-        client_endpoint=endpoint,
-        auth_tokens=tokens
-    )
-    return dict(response.get('result')) if response.get('result') else {}
-
-
-async def get_all_options_bitrix_options(
-    crest_instance: CRestBitrix24,
-    portal: PortalModel
-) -> BitrixAppStorageModel | None:
-    options = await get_all_options_dict(
-        crest_instance=crest_instance,
-        portal=portal
-    )
-    return BitrixAppStorageModel(**dict(options)) if options else None
+    return result.get("result")
 
 
 async def create_ktalk_company_calendar(
     crest: CRestBitrix24,
-    portal: PortalModel,
+    user_auth: UserAuthModel,
     calendar_name: str = CALENDAR_NAME,
-    user: UserModel = None
 ) -> CALENDAR_ID:
     """
     Создать календарь компании, общий для всех сотрудников.
+    Нет проверки на то, существует ли уже такой календарь.
     """
     tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
 
     call = CallRequest(
@@ -193,7 +83,7 @@ async def create_ktalk_company_calendar(
     )
     result = await crest.call(
         request=call,
-        client_endpoint=portal.client_endpoint,
+        client_endpoint=user_auth.client_endpoint,
         auth_tokens=tokens
     )
     return result['result']
@@ -201,17 +91,12 @@ async def create_ktalk_company_calendar(
 
 async def get_ktalk_company_calendar(
     crest: CRestBitrix24,
-    portal: PortalModel,
-    user: UserModel = None,
+    user_auth: UserAuthModel,
     calendar_name: str = CALENDAR_NAME,
     calendar_id: CALENDAR_ID = None
 ) -> BitrixCalendarModel | None:
     tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
 
     call = CallRequest(
@@ -223,7 +108,7 @@ async def get_ktalk_company_calendar(
     )
     result = await crest.call(
         request=call,
-        client_endpoint=portal.client_endpoint,
+        client_endpoint=user_auth.client_endpoint,
         auth_tokens=tokens)
 
     if not calendar_id and not calendar_name:
@@ -231,16 +116,16 @@ async def get_ktalk_company_calendar(
             "Ошибка. Чтобы получить календарь, необходимо передать calendar_name и/или calendar_id")
         return None
 
-    for meeting in result['result']:
+    for calendar in result['result']:
         if calendar_id and calendar_name:
-            if meeting['ID'] == str(calendar_id) and meeting['NAME'] == calendar_name:
-                return BitrixCalendarModel(**meeting)
+            if calendar['ID'] == str(calendar_id) and calendar['NAME'] == calendar_name:
+                return BitrixCalendarModel(**calendar)
         elif calendar_id:
-            if meeting['ID'] == str(calendar_id):
-                return BitrixCalendarModel(**meeting)
+            if calendar['ID'] == str(calendar_id):
+                return BitrixCalendarModel(**calendar)
         elif calendar_name:
-            if meeting['NAME'] == calendar_name:
-                return BitrixCalendarModel(**meeting)
+            if calendar['NAME'] == calendar_name:
+                return BitrixCalendarModel(**calendar)
 
     return None
 
@@ -250,17 +135,12 @@ async def create_ktalk_calendar_event(
     calendar_id: CALENDAR_ID,
     meeting: MeetingModel,
     created_meeting_information: KTalkBackAnswerModel,
-    portal: PortalModel,
-    user: UserModel = None,
+    user_auth: UserAuthModel
 ) -> CALENDAR_EVENT_ID:
     description = f"{meeting.description}\n\nСсылка на встречу: {created_meeting_information.url}\nПин-код: {meeting.pinCode}".lstrip()
 
     tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
     call = CallRequest(
         method='calendar.event.add',
@@ -274,94 +154,55 @@ async def create_ktalk_calendar_event(
             'description': description
         }
     )
+    logger.debug(call)
     result = await crest.call(
         request=call,
-        client_endpoint=portal.client_endpoint,
+        client_endpoint=user_auth.client_endpoint,
         auth_tokens=tokens
     )
-    return result
+    return result['result']
 
 
 async def get_calendar_event(
     crest: CRestBitrix24,
     calendar_id: CALENDAR_ID,
     calendar_event_id: CALENDAR_EVENT_ID,
-    portal: PortalModel,
-    user: UserModel = None
+    user_auth: UserAuthModel
 ) -> dict | None:
     tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
-
     call = CallRequest(
         method='calendar.event.get',
         params={
             'type': 'company_calendar',
-            'ownerId': "",
+            'ownerId': "0",
             'section': [calendar_id],
         }
     )
-    result = crest.call(
+    result = await crest.call(
         request=call,
-        client_endpoint=portal.client_endpoint,
+        client_endpoint=user_auth.client_endpoint,
         auth_tokens=tokens
     )
     for meeting in result['result']:
+        print(f"{calendar_event_id} - {meeting['ID']}")
         if meeting['ID'] == str(calendar_event_id):
             return (meeting)
     return None
 
 
-async def get_public_chat(
+async def send_notification_to_blogpost(
     crest: CRestBitrix24,
-    portal: PortalModel,
-    user: UserModel = None
-) -> CHAT_ID | None:
-    tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
-    )
-
-    call = CallRequest(
-        method="im.recent.list"
-    )
-    result = await crest.call(
-        request=call,
-        client_endpoint=portal.client_endpoint,
-        auth_tokens=tokens
-    )
-
-    public_chat = next(
-        (c for c in result['result']['items'] if c['title'] == 'Общий чат'), None)
-
-    return public_chat['id'] if public_chat else None
-
-
-async def send_notification_message_to_chat(
-    crest: CRestBitrix24,
-    chat_id: CHAT_ID,
     meeting: MeetingModel,
     created_meeting_information: KTalkBackAnswerModel,
-    # ktalk_calendar: BitrixCalendarModel,
-    portal: PortalModel,
-    user: UserModel = None
-) -> None:
+    user_auth: UserAuthModel
+) -> dict:
     tokens = AuthTokens(
-        access_token=user.access_token,
-        refresh_token=user.refresh_token
-    ) if user else AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
 
-    base_domain = _get_base_domain_from_client_endpoint(portal.client_endpoint)
+    base_domain = _get_base_domain_from_client_endpoint(user_auth.client_endpoint)
 
     logger.debug(created_meeting_information.url)
 
@@ -373,29 +214,21 @@ async def send_notification_message_to_chat(
         calendar_url=base_domain + '/calendar'
     )
 
-    call_batches = [
-        CallRequest(
-            method='im.message.add',
-            params={
-                'DIALOG_ID': chat_id,
-                'MESSAGE': '[B]Создана видеовстреча[/B]',
-                'SYSTEM': 'Y',
-            }
-        ),
-        CallRequest(
-            method='im.message.add',
-            params={
-                'DIALOG_ID': chat_id,
-                'MESSAGE': message_text
-            }
-        )
-    ]
-
-    await crest.call_batch(
-        call_batches,
-        client_endpoint=portal.client_endpoint,
-        auth_tokens=tokens
+    call = CallRequest(
+        method="log.blogpost.add",
+        params={
+            "POST_TITLE": f"[B]{meeting.subject}[/B]",
+            "POST_MESSAGE": f"Создана видеоконференция на платформе КТолк\n{message_text}"
+        }
     )
+
+    result = await crest.call(
+        request=call,
+        auth_tokens=tokens,
+        client_endpoint=user_auth.client_endpoint
+    )
+    
+    return result
 
 
 def _get_base_domain_from_client_endpoint(cliend_endpoint: str) -> str:
@@ -404,77 +237,84 @@ def _get_base_domain_from_client_endpoint(cliend_endpoint: str) -> str:
 
 async def create_robot_request(
     CRest: CRestBitrix24,
-    portal: PortalModel,
+    user_auth: UserAuthModel,
     application_domain: str
-):
-    return await CRest.call(
-        CallRequest(
-            method="bizproc.robot.add",
-            params={
-                'CODE': 'ktalk_robot',
-                'HANDLER': f'{application_domain}/ktalk_robot',
-                'AUTH_USER_ID': 1,
-                'NAME': 'Робот КТолк',
-                "PROPERTIES": {
-                    "subject": {
-                        "name": "Тема встречи",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "description": {
-                        "name": "Текст приглашения",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "start": {
-                        "name": "Дата и время начала",
-                        "type": "datetime",
-                        "required": "Y"
-                    },
-                    "end": {
-                        "name": "Дата и время окончания",
-                        "type": "datetime",
-                        "required": "Y"
-                    },
-                    "timezone": {
-                        "name": "Часовой пояс",
-                        "type": "string",
-                        "required": "Y"
-                    },
-                    "allowAnonymous": {
-                        "name": "Подключение внешних пользователей",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "enableSip": {
-                        "name": "Подключение по звонку",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "enableAutoRecording": {
-                        "name": "Автоматическая запись встречи",
-                        "type": "bool",
-                        "required": "Y"
-                    },
-                    "pinCode": {
-                        "name": "Pin-код (от 4 до 6 цифр)",
-                        "type": "int",
-                        "required": "N"
-                    }
+) -> bool | dict:
+    req = CallRequest(
+        method="bizproc.robot.add",
+        params={
+            'CODE': 'ktalk_robot',
+            'HANDLER': f'{application_domain}/ktalk_robot',
+            'AUTH_USER_ID': 1,
+            'NAME': 'Робот КТолк',
+            "PROPERTIES": {
+                "subject": {
+                    "name": "Тема встречи",
+                    "type": "string",
+                    "required": "Y"
+                },
+                "description": {
+                    "name": "Текст приглашения",
+                    "type": "string",
+                    "required": "Y"
+                },
+                "start": {
+                    "name": "Дата и время начала",
+                    "type": "datetime",
+                    "required": "Y"
+                },
+                "end": {
+                    "name": "Дата и время окончания",
+                    "type": "datetime",
+                    "required": "Y"
+                },
+                "timezone": {
+                    "name": "Часовой пояс",
+                    "type": "string",
+                    "required": "Y"
+                },
+                "allowAnonymous": {
+                    "name": "Подключение внешних пользователей",
+                    "type": "bool",
+                    "required": "Y"
+                },
+                "enableSip": {
+                    "name": "Подключение по звонку",
+                    "type": "bool",
+                    "required": "Y"
+                },
+                "enableAutoRecording": {
+                    "name": "Автоматическая запись встречи",
+                    "type": "bool",
+                    "required": "Y"
+                },
+                "pinCode": {
+                    "name": "Pin-код (от 4 до 6 цифр)",
+                    "type": "int",
+                    "required": "N"
                 }
             }
-        ),
-        client_endpoint=portal.client_endpoint,
+        }
+    )
+    result = await CRest.call(
+        request=req,
+        client_endpoint=user_auth.client_endpoint,
         auth_tokens=AuthTokens(
-            access_token=portal.access_token,
-            refresh_token=portal.refresh_token
+            **user_auth.model_dump()
         )
     )
+    if 'error' in result.keys():
+        if result['error'] == 'ERROR_METHOD_NOT_FOUND':
+            logger.warning("Не удалось создать робота из-за тарифа портала")
+        elif result['error'] == 'ERROR_ACTIVITY_ALREADY_INSTALLED':
+            logger.warning("Робот уже установлен")
+        return result
+    return result['result']
 
 
 async def add_todo_activity(
     crest: CRestBitrix24,
-    portal: PortalModel,
+    user_auth: UserAuthModel,
     creator_id: int,
     owner_id: int,
     meeting: MeetingModel,
@@ -497,7 +337,7 @@ async def add_todo_activity(
             'ownerId': owner_id,
             'title': meeting.subject,
             'description': meeting.description,
-            'deadline': meeting.end_todo_activity,
+            'deadline': meeting.end_ktalk,
             'responsibleId': creator_id,
             'settings': [
                 {
@@ -505,9 +345,9 @@ async def add_todo_activity(
                     'id': 'link'
                 },
                 {
-                    'from': meeting.start_ktalk,
-                    'to': meeting.end_ktalk,
-                    'duration': 1200000,
+                    'from': meeting.start_todo_activity,
+                    'to': meeting.end_todo_activity,
+                    # 'duration': 1200000,
                     'location': '',
                     # 'selectedUserIds': participants.colleguesId,
                     'id': 'calendar'
@@ -521,10 +361,9 @@ async def add_todo_activity(
             "pingOffsets": [0, 15, 60, 1440]
         }
     )
-    endpoint = portal.client_endpoint
+    endpoint = user_auth.client_endpoint
     tokens = AuthTokens(
-        access_token=portal.access_token,
-        refresh_token=portal.refresh_token
+        **user_auth.model_dump()
     )
     response = await crest.call(
         request=call_request,
