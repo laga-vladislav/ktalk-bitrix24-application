@@ -21,7 +21,7 @@ def _get_sip_settings(ktalk_response: dict) -> dict:
 
 
 def get_back_answer(ktalk_response: dict, ktalk_space: KtalkSpaceModel) -> KTalkBackAnswerModel:
-    full_url = _get_meeting_url(ktalk_response=ktalk_response, options=ktalk_space)
+    full_url = _get_meeting_url(ktalk_response=ktalk_response, ktalk_space=ktalk_space)
     sip_settings = _get_sip_settings(ktalk_response=ktalk_response)
     return KTalkBackAnswerModel(
         url=full_url, sipSettings=sip_settings

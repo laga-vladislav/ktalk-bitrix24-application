@@ -18,7 +18,6 @@ def date_validator(date_value: str | int) -> str | int:
 
         # Проверяем формат 'YYYY-MM-DDTHH:MM:SS.ssssssZ'
         try:
-            # Обратите внимание на 'Z'
             datetime.strptime(date_value, '%Y-%m-%dT%H:%M:%SZ')
             return date_value
         except ValueError:

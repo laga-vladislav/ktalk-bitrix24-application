@@ -4,12 +4,13 @@ from src.models import KtalkSpaceModel
 from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 from src.ktalk.utils import get_back_answer
 
+from src.logger.custom_logger import logger
+
 
 async def create_meeting(meeting: MeetingModel, ktalk_space: KtalkSpaceModel) -> KTalkBackAnswerModel:
     async with AsyncClient() as client:
-        meeting.start = meeting.start_ktalk
-        meeting.end = meeting.end_ktalk
-        print(meeting.model_dump())
+        meeting.start = str(meeting.start_ktalk)
+        meeting.end = str(meeting.end_ktalk)
 
         space_name = ktalk_space.space
         email = ktalk_space.admin_email
@@ -20,4 +21,11 @@ async def create_meeting(meeting: MeetingModel, ktalk_space: KtalkSpaceModel) ->
             headers={"X-Auth-Token": api_key},
             json=meeting.model_dump()
         )
+        logger.debug(response)
+        if response.status_code == 403:
+            logger.error(response)
+            return KTalkBackAnswerModel(error="Неверный API ключ, либо тариф КТолк пространства")
+        if response.status_code != 200:
+            logger.error(response.json())
+            return KTalkBackAnswerModel(error=f"Произошла ошибка при создании встречи: {response.json()['errorMessage']}")
         return get_back_answer(response.json(), ktalk_space)
