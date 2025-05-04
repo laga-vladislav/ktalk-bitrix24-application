@@ -144,10 +144,8 @@ async def install(
         user_auth=admin_user_auth,
         application_domain=env.str("APPLICATION_DOMAIN")
     )
-    if 'error' in created_robot.keys():
-        logger.error(f"Ошибка при создании робота: {created_robot}")
-    else:
-        logger.info("Робот был создан")
+    if not 'error' in created_robot.keys():
+        logger.warning(f"Ошибка при создании робота: {created_robot}")
 
     return HTMLResponse(content=html_content, status_code=200)
 

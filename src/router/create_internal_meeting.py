@@ -39,18 +39,22 @@ async def handler(
         participants: ParticipantsModel - участники встречи (задел на будущее).
     """
     portal = await get_portal(session=session, member_id=user_auth.member_id)
+    logger.debug(portal)
 
     ktalk_space = await get_ktalk_space(session=session, portal=portal)
+    logger.debug(ktalk_space)
     if not ktalk_space:
         logger.error("Пространство КТолк не настроено")
-        return HTTPException(200, "Пространство КТолк не настроено")
+        return HTTPException(400, "Пространство КТолк не настроено")
 
     created_meeting_information = await create_meeting(meeting=meeting, ktalk_space=ktalk_space)
+    logger.debug(created_meeting_information)
 
     ktalk_calendar = await get_ktalk_company_calendar(
         crest=CRest,
         user_auth=user_auth
     )
+    logger.debug(ktalk_calendar)
     if ktalk_calendar:
         await create_ktalk_calendar_event(
             crest=CRest,
