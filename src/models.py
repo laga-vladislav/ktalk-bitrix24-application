@@ -57,7 +57,11 @@ class UserAuthModel(BaseModel):
     """
     user_id: int
     member_id: str
-    client_endpoint: str = Field(exclude=True)
+    client_endpoint: str = Field(exclude=True)  # exclude необходим при преобразовании из модели в схему. У схемы нет такого поля.
     access_token: str
     refresh_token: str
     updated_at: datetime = Field(default=datetime.now())
+
+    def dict_with_excluded_fields(self):
+        return {**self.model_dump(mode="json"), "client_endpoint": self.client_endpoint}
+    

@@ -147,8 +147,8 @@ async def create_ktalk_calendar_event(
         params={
             'type': 'company_calendar',
             'ownerId': 0,
-            'from_ts': meeting.start_todo_activity / 1000,
-            'to_ts': meeting.end_todo_activity / 1000,
+            'from_ts': meeting.start_robot / 1000,
+            'to_ts': meeting.end_robot / 1000,
             'section': calendar_id,
             'name': meeting.subject,
             'description': description
@@ -310,6 +310,31 @@ async def create_robot_request(
             logger.warning("Робот уже установлен")
         return result
     return result['result']
+
+
+async def delete_robot_request(
+    crest: CRestBitrix24,
+    user_auth: UserAuthModel
+):
+    req = CallRequest(
+        method="bizproc.robot.delete",
+        params={
+            "CODE": "ktalk_robot"
+        }
+    )
+    result = await crest.call(
+        request=req,
+        client_endpoint=user_auth.client_endpoint,
+        auth_tokens=AuthTokens(
+            **user_auth.model_dump()
+        )
+    )
+    if 'error' in result.keys():
+        if result['error'] == 'ERROR_ACTIVITY_NOT_FOUND':
+            logger.warning("Ошибка при удалении робота. Робот не существует")
+        else:
+            logger.error(f"Ошибка при удалении робота: {result}")
+
 
 
 async def add_todo_activity(
