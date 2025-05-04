@@ -1,7 +1,8 @@
 import random
 import string
 import json
-import datetime    
+import datetime
+import uuid
 from pathlib import Path
 from dataclasses import dataclass
 from src.models import UserModel, KtalkSpaceModel, PortalModel, UserAuthModel
@@ -112,8 +113,6 @@ class DatabaseTestData:
 
 @dataclass
 class KTalkTestData:
-    calendar_name: str = 'Календарь встреч КТолк'
-    calendar_id: int = _persistent_data.get("calendar_id")
     meeting_dict = {
         "subject": "Созвон. По будням, в 20:00, только на СТС",
         "description": "Пожалуйста, не подключайтесь!",
@@ -122,12 +121,19 @@ class KTalkTestData:
         "timezone": "GMT+9",
         "allowAnonymous": True,
         "enableSip": True,
-        "enableAutoRecording": True
+        "enableAutoRecording": True,
+        "roomName": str(uuid.uuid4())
     }
     meeting_model = MeetingModel(**meeting_dict)
     meeting_information_back_answer = KTalkBackAnswerModel(
         url='example.com'
     )
+
+
+@dataclass
+class BitrixTestData:
+    calendar_name: str = 'Календарь встреч КТолк'
+    calendar_id: int = _persistent_data.get("calendar_id")
     meeting_id: int = _persistent_data.get("meeting_id")
     company_id: int = _persistent_data.get("company_id")
     contact_id: int = _persistent_data.get("contact_id")
@@ -136,9 +142,9 @@ class KTalkTestData:
     @staticmethod
     def save():
         save_persistent_data({
-            "calendar_id": KTalkTestData.calendar_id,
-            "meeting_id": KTalkTestData.meeting_id,
-            "company_id": KTalkTestData.company_id,
-            "contact_id": KTalkTestData.contact_id,
-            "deal_id": KTalkTestData.deal_id
+            "calendar_id": BitrixTestData.calendar_id,
+            "meeting_id": BitrixTestData.meeting_id,
+            "company_id": BitrixTestData.company_id,
+            "contact_id": BitrixTestData.contact_id,
+            "deal_id": BitrixTestData.deal_id
         })

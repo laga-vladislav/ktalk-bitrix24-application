@@ -12,7 +12,7 @@ from tests.data import DatabaseTestData as data
 from tests.data import get_random_string
 
 
-class TestDatabase:
+class Test1Database:
     """
     Portal Section
     """

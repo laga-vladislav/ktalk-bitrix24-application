@@ -86,9 +86,7 @@ async def get_portal() -> PortalModel:
     """
     Установи здесь свой refresh_token
     """
-    auth = await crest_auth.refresh_token(refresh_token=admin_refresh_token)
-    # user 
-    #admin 3396346800781b54007803520000000160540750e8be3373a6ed40701b2a4d0d6283f3
+    auth = await crest_auth.refresh_token(refresh_token=refresh_token_admin)
     return PortalModel(
         member_id=auth['member_id'],
         client_endpoint=auth['client_endpoint'],
