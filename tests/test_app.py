@@ -260,6 +260,7 @@ class Test4FastapiApplication:
             }
         )
         print(result)
+        assert result.status_code == 200
 
 
     async def test_endpoint_set_settings(self, ac: AsyncClient, get_ktalk_space: KtalkSpaceModel):
@@ -268,16 +269,44 @@ class Test4FastapiApplication:
             json=get_ktalk_space.model_dump()
         )
         print(result)
+        assert result.status_code == 200
 
     
-    async def test_endpoint_create_internal_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel, get_ktalk_space: KtalkSpaceModel):
+    async def test_endpoint_create_internal_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
         fields = get_admin_auth.model_fields_set
         print(fields)
         result = await ac.post(
             '/create-internal-meeting',
-            json={
-                "user_auth": get_admin_auth.dict_with_excluded_fields(),
-                "meeting": ktalk_data.meeting_model.model_dump(mode="json")
+            params={
+                "memberId": get_admin_auth.member_id,
+                "creatorId": get_admin_auth.user_id,
+            },
+            json=ktalk_data.meeting_model.model_dump(mode="json")
+        )
+        print(result)
+        assert result.status_code == 200
+
+
+    async def test_endpoint_create_external_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
+        result = await ac.post(
+            '/create-external-meeting',
+            params={
+                "creatorId": get_admin_auth.user_id,
+                "ownerId": bitrix_data.deal_id,
+                "memberId": get_admin_auth.member_id
+            },
+            json=ktalk_data.meeting_model.model_dump(mode="json")
+        )
+        print(result)
+        assert result.status_code == 200
+
+    
+    async def test_endpoint_handler(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
+        result = await ac.post(
+            '/handler',
+            data={
+                "REFRESH_ID": get_admin_auth.refresh_token
             }
         )
         print(result)
+        assert result.status_code == 307

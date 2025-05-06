@@ -1,5 +1,4 @@
 import os
-from dotenv import load_dotenv
 from typing import AsyncGenerator
 
 from fastapi import APIRouter, Depends, Form, Request
@@ -8,10 +7,10 @@ from fastapi.responses import RedirectResponse
 from src.auth import create_jwt
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
-from src.models import UserModel
+from src.models import UserModel, UserAuthModel
 
 from src.db.database import get_session
-from src.db.requests import add_user
+from src.db.requests import get_user, add_user, get_user_auth, set_user_auth
 
 from src.router.utils import get_crest
 from src.bitrix_requests import get_user_info
@@ -30,24 +29,48 @@ async def handler(
     full_auth = await CRest.refresh_token(REFRESH_ID)
     logger.debug(full_auth)
 
-    user_tokens = AuthTokens(
-        access_token=full_auth["access_token"], refresh_token=full_auth["refresh_token"]
+    user: UserModel | None = await get_user(
+        session=session,
+        user_id=full_auth['user_id'],
+        member_id=full_auth['member_id']
     )
 
-    user = await get_user_info(
-        CRest=CRest,
-        tokens=user_tokens,
-        client_endpoint=full_auth["client_endpoint"],
-        member_id=full_auth["member_id"]
-    )
-    logger.debug(user)
+    if not user:
+        user_tokens = AuthTokens(
+            access_token=full_auth["access_token"], refresh_token=full_auth["refresh_token"]
+        )
 
-    await add_user(
+        user = await get_user_info(
+            CRest=CRest,
+            tokens=user_tokens,
+            client_endpoint=full_auth["client_endpoint"],
+            member_id=full_auth["member_id"]
+        )
+        logger.debug(user)
+
+        await add_user(
+            session=session,
+            user=user
+        )
+
+    user_auth: UserAuthModel | None = await get_user_auth(
         session=session,
         user=user
     )
 
-    token = create_jwt(user)
+    if not user_auth:
+        user_auth = UserAuthModel(
+            user_id=user.user_id,
+            member_id=user.member_id,
+            client_endpoint=full_auth['client_endpoint'],
+            access_token=full_auth['access_token'],
+            refresh_token=full_auth['refresh_token']
+        )
+
+    (user_auth.access_token, user_auth.refresh_token) = (full_auth['access_token'], full_auth['refresh_token'])
+    await set_user_auth(session=session, auth=user_auth)
+
+    token = create_jwt(user_auth=user_auth)
 
     if user.is_admin:
         response = RedirectResponse(url=os.getenv("FRONT_DOMAIN") + "/menu")

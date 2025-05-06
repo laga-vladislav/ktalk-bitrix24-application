@@ -166,8 +166,18 @@ async def get_user_auth(session: AsyncSession, user: UserModel) -> UserAuthModel
             return UserAuthModel(**user_token_scheme.to_dict())
         return None
     except Exception as e:
-        logger.error(f"Ошибка при получении токена пользователя: {e}")
+        logger.error(f"Ошибка при получении данных авторизации пользователя: {e}")
         raise
+
+async def get_user_auth_without_model(session: AsyncSession, member_id: str, user_id: str) -> UserAuthModel | None:
+    temp_user_model = UserModel(
+        member_id=member_id,
+        user_id=user_id,
+        name="",
+        last_name="",
+        is_admin=False
+    )
+    return await get_user_auth(session=session, user=temp_user_model)    
 
 async def _refresh_user_auth(session: AsyncSession, auth: UserAuthModel):
     try:

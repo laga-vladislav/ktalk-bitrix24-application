@@ -239,12 +239,12 @@ async def create_robot_request(
     CRest: CRestBitrix24,
     user_auth: UserAuthModel,
     application_domain: str
-) -> bool | dict:
+) -> dict:
     req = CallRequest(
         method="bizproc.robot.add",
         params={
             'CODE': 'ktalk_robot',
-            'HANDLER': f'{application_domain}/ktalk_robot',
+            'HANDLER': f'{application_domain}/create-external-meeting',
             'AUTH_USER_ID': 1,
             'NAME': 'Робот КТолк',
             "PROPERTIES": {
@@ -309,7 +309,7 @@ async def create_robot_request(
         elif result['error'] == 'ERROR_ACTIVITY_ALREADY_INSTALLED':
             logger.warning("Робот уже установлен")
         return result
-    return result['result']
+    return result
 
 
 async def delete_robot_request(
@@ -370,9 +370,9 @@ async def add_todo_activity(
                     'id': 'link'
                 },
                 {
-                    'from': meeting.start_todo_activity,
-                    'to': meeting.end_todo_activity,
-                    # 'duration': 1200000,
+                    'from': meeting.start_robot,
+                    'to': meeting.end_robot,
+                    # 'duration': ,
                     'location': '',
                     # 'selectedUserIds': participants.colleguesId,
                     'id': 'calendar'
