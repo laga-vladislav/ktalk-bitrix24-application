@@ -1,15 +1,14 @@
 from typing import AsyncGenerator
 from src.db.database import get_session
-from src.db.requests import get_portal
+from src.db.requests import get_portal, get_user_auth_without_model, get_ktalk_space
 
 from fastapi import APIRouter, Depends, Request
 
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 
-from src.db.requests import get_ktalk_space
 from src.ktalk.requests import create_meeting
-from src.models import ParticipantsModel, KtalkSpaceModel
+from src.models import PortalModel, KtalkSpaceModel, UserAuthModel
 from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
 from src.ktalk.utils import get_back_answer
 
@@ -28,7 +27,7 @@ async def handler(
     ownerId: int,
     memberId: str,
     meeting: MeetingModel,
-    participants: ParticipantsModel,
+    # participants: ParticipantsModel,
     CRest: CRestBitrix24 = Depends(get_crest),
     session: AsyncGenerator = Depends(get_session),
 ) -> KTalkBackAnswerModel:
@@ -41,35 +40,42 @@ async def handler(
         meeting: MeetingModel - данные встречи.
         participants: ParticipantsModel - участники встречи.
     """
-    portal = await get_portal(session, memberId)
+    portal: PortalModel = await get_portal(session, memberId)
     if not portal:
+        logger.error(f"Ошибка при получении портала: {memberId}")
         return KTalkBackAnswerModel(error='Портал не найден')
 
-    # === Создание встречи КТолк ===
+    user_auth: UserAuthModel = await get_user_auth_without_model(session, member_id=memberId, user_id=creatorId)
+    if not user_auth:
+        logger.error(f"Ошибка при получении пользователя: {memberId} - {creatorId}")
+        return KTalkBackAnswerModel(error='Пользователь не найден')
+
     ktalk_space: KtalkSpaceModel = await get_ktalk_space(session=session, portal=portal)
     if not ktalk_space:
+        logger.error(f"Ошибка при получении пространства КТолк для портала: {memberId}")
         return KTalkBackAnswerModel(error='Не удалось получить настройки пространства КТолк')
 
-    ktalk_response = await create_meeting(
+    # === Создание встречи КТолк ===
+    ktalk_response: KTalkBackAnswerModel = await create_meeting(
         meeting=meeting,
         ktalk_space=ktalk_space
     )
-    back_answer_to_front = get_back_answer(
-        ktalk_response=ktalk_response, ktalk_space=ktalk_space)
-    logger.info(f'Была создана встреча: {back_answer_to_front}')
+    if ktalk_response.error:
+        logger.error(f"Ошибка при создании встречи КТолк: {ktalk_response.error}")
+        return ktalk_response
+    logger.info(f'Была создана встреча: {ktalk_response}')
     # ======
 
     # === Создание дела CRest ===
     activity_result = await add_todo_activity(
         crest=CRest,
-        portal=portal,
-        creator_id=creatorId,
+        user_auth=user_auth,
+        creator_id=user_auth.user_id,
         owner_id=ownerId,
         meeting=meeting,
-        meeting_url=back_answer_to_front.url,
-        participants=participants
+        meeting_url=ktalk_response.url
     )
     logger.info(f'Было создано дело: {activity_result}')
     # ======
 
-    return back_answer_to_front
+    return ktalk_response
