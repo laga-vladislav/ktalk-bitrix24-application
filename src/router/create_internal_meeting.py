@@ -1,13 +1,13 @@
 from typing import AsyncGenerator
 from src.db.database import get_session
-from src.db.requests import get_portal, get_user, get_ktalk_space
+from src.db.requests import get_portal, get_user_auth_without_model, get_user, get_ktalk_space
 
 from fastapi import APIRouter, Depends, Query, Body, Response, HTTPException
 
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 
-from src.models import UserAuthModel
+from src.models import PortalModel, UserModel, UserAuthModel
 
 from src.bitrix_requests import create_ktalk_calendar_event, get_ktalk_company_calendar, send_notification_to_blogpost
 from src.ktalk.requests import create_meeting
@@ -21,7 +21,9 @@ router = APIRouter()
 
 @router.post("/create-internal-meeting")
 async def handler(
-    user_auth: UserAuthModel = Body(),
+    user_id: int = Query(alias="creatorId"),
+    member_id: str = Query(alias="memberId"),
+    # user_auth: UserAuthModel = Body(),
     meeting: MeetingModel = Body(),
     # participants: ParticipantsModel,
     CRest: CRestBitrix24 = Depends(get_crest),
@@ -38,8 +40,18 @@ async def handler(
         meeting: MeetingModel - данные встречи.
         participants: ParticipantsModel - участники встречи (задел на будущее).
     """
-    portal = await get_portal(session=session, member_id=user_auth.member_id)
+    portal: PortalModel = await get_portal(
+        session=session, member_id=member_id
+    )
     logger.debug(portal)
+
+    user_auth: UserAuthModel = await get_user_auth_without_model(
+        session=session, member_id=member_id, user_id=user_id
+    )
+    logger.debug(user_auth)
+
+    if not user_auth:
+        return HTTPException(400, f"Не найдены данные авторизации для пользователя: {member_id} - {user_id}")
 
     ktalk_space = await get_ktalk_space(session=session, portal=portal)
     logger.debug(ktalk_space)
