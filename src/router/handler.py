@@ -39,6 +39,11 @@ async def handler(
         await _add_user(
             CRest=CRest, session=session, user_auth=full_auth
         )
+        user = await get_user(
+            session=session,
+            user_id=full_auth['user_id'],
+            member_id=full_auth['member_id']
+        )
 
     user_auth: UserAuthModel | None = await get_user_auth(
         session=session,
@@ -57,19 +62,16 @@ async def handler(
     (user_auth.access_token, user_auth.refresh_token) = (full_auth['access_token'], full_auth['refresh_token'])
     await set_user_auth(session=session, auth=user_auth)
 
-    token = create_jwt(user_auth=user_auth)
+    token = create_jwt(user=user)
 
+    redirect_url = f"https://{os.getenv("FRONT_DOMAIN")}"
     if user.is_admin:
-        response = RedirectResponse(url=os.getenv("FRONT_DOMAIN") + "/menu")
+        redirect_url += "/menu"
     else:
-        response = RedirectResponse(url=os.getenv(
-            "FRONT_DOMAIN") + "/create-meeting")
+        redirect_url += "/create-meeting"
+    redirect_url += "?token=" + token
 
-    response.set_cookie(key="jwt",
-                        value=token,
-                        domain=os.getenv("FRONT_DOMAIN"),
-                        samesite="None",
-                        secure=True)
+    response = RedirectResponse(url=redirect_url)
 
     return response
 

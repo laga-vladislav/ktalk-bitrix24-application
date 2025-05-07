@@ -6,6 +6,9 @@ from src.ktalk.validators import date_validator, timezone_validator, pincode_val
 
 
 class MeetingModel(BaseModel):
+    # Короче, узнал инфу про дату в КТолке:
+    # дату надо посылать в в UTC0, отправляя часовой пояс.
+    # Он там сам уже прибавляет в зависимости от пояса. Бред, ес честно.
     subject: str
     description: str
     start: int | str = Field(

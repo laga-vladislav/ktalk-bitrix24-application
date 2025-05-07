@@ -14,7 +14,7 @@ app.add_middleware(JWTAuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        os.getenv("FRONT_DOMAIN"),
+        "https://" + os.getenv("FRONT_DOMAIN"),
         "http://localhost:3000",
         "http://localhost:5173"],
     allow_credentials=True,

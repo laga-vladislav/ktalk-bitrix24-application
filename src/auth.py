@@ -2,15 +2,15 @@ import os
 import datetime
 import jwt 
 from fastapi import HTTPException
-from src.models import UserAuthModel
+from src.models import UserModel
 from src.logger.custom_logger import logger
 
 SECRET_KEY = os.getenv("JWT_KEY")
 
 
-def create_jwt(user_auth: UserAuthModel, lifetime_in_hours: int = 1) -> str:
+def create_jwt(user: UserModel, lifetime_in_hours: int = 1) -> str:
     payload = {
-        **user_auth.model_dump(mode="json"),
+        **user.model_dump(mode="json"),
         "exp": (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=lifetime_in_hours)).timestamp()
     }
     return jwt.encode(payload, SECRET_KEY, algorithm="HS256")
