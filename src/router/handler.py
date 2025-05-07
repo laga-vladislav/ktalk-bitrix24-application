@@ -36,21 +36,8 @@ async def handler(
     )
 
     if not user:
-        user_tokens = AuthTokens(
-            access_token=full_auth["access_token"], refresh_token=full_auth["refresh_token"]
-        )
-
-        user = await get_user_info(
-            CRest=CRest,
-            tokens=user_tokens,
-            client_endpoint=full_auth["client_endpoint"],
-            member_id=full_auth["member_id"]
-        )
-        logger.debug(user)
-
-        await add_user(
-            session=session,
-            user=user
+        await _add_user(
+            CRest=CRest, session=session, user_auth=full_auth
         )
 
     user_auth: UserAuthModel | None = await get_user_auth(
@@ -105,3 +92,4 @@ async def _add_user(CRest: CRestBitrix24, session: AsyncGenerator, user_auth: di
         session=session,
         user=user
     )
+    
