@@ -33,20 +33,32 @@ class MessageText:
 
 
 async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> UserModel:
+    user_info: dict = await get_user_raw_info(
+        CRest=CRest, tokens=tokens, client_endpoint=client_endpoint, member_id=member_id
+    )
+    is_admin = await get_admin_status(CRest, tokens, client_endpoint)
+    return UserModel(
+        member_id=member_id,
+        user_id=int(user_info['ID']),
+        name=user_info['NAME'],
+        last_name=user_info['LAST_NAME'],
+        is_admin=bool(is_admin)
+    )
+
+
+async def get_user_raw_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> dict:
+    """
+    Возвращает полную информацию о пользователе.
+    Формат возвращаемых данных:
+
+    """
     inforeq = CallRequest(method="user.current")
     user_info = await CRest.call(
         request=inforeq,
         auth_tokens=tokens,
         client_endpoint=client_endpoint
     )
-    is_admin = await get_admin_status(CRest, tokens, client_endpoint)
-    return UserModel(
-        member_id=member_id,
-        user_id=int(user_info['result']['ID']),
-        name=user_info['result']['NAME'],
-        last_name=user_info['result']['LAST_NAME'],
-        is_admin=bool(is_admin)
-    )
+    return user_info['result']
 
 
 async def get_admin_status(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str) -> bool:
@@ -268,11 +280,11 @@ async def create_robot_request(
                     "type": "datetime",
                     "required": "Y"
                 },
-                "timezone": {
-                    "name": "Часовой пояс",
-                    "type": "string",
-                    "required": "Y"
-                },
+                # "timezone": {
+                #     "name": "Часовой пояс",
+                #     "type": "string",
+                #     "required": "Y"
+                # },
                 "allowAnonymous": {
                     "name": "Подключение внешних пользователей",
                     "type": "bool",

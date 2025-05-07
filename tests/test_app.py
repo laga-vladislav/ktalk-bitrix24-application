@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 from src.models import UserModel, UserAuthModel, KtalkSpaceModel
 
-from src.bitrix_requests import get_admin_status, get_user_info
+from src.bitrix_requests import get_admin_status, get_user_info, get_user_raw_info
 from src.bitrix_requests import create_ktalk_company_calendar, get_ktalk_company_calendar
 from src.bitrix_requests import create_ktalk_calendar_event, get_calendar_event
 from src.bitrix_requests import send_notification_to_blogpost
@@ -48,6 +48,18 @@ class Test2BitrixApplication:
         )
         print(result)
         assert isinstance(result, UserModel)
+
+
+    async def test_get_user_raw_info(self, get_admin_auth: UserAuthModel):
+        auth_tokens = AuthTokens(**get_admin_auth.model_dump())
+        result = await get_user_raw_info(
+            CRest=crest_auth,
+            tokens=auth_tokens,
+            client_endpoint=get_admin_auth.client_endpoint,
+            member_id=get_admin_auth.member_id
+        )
+        print(result)
+        assert isinstance(result, dict) and (key in result.keys() for key in ['ID', 'ACTIVE', 'TIME_ZONE_OFFSET'])
 
 
     async def test_create_company_calendar(self, get_admin_auth: UserAuthModel):
