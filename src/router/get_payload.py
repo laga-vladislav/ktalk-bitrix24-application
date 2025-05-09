@@ -4,7 +4,7 @@ from src.auth import verify_token
 router = APIRouter()
 
 
-@router.post("/get-jwt-payload")
+@router.get("/get-jwt-payload")
 async def verify(request: Request):
     auth_header = request.headers.get("Authorization")
     token = auth_header.split("Bearer ")[-1]

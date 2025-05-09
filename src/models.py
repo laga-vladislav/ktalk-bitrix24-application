@@ -1,19 +1,13 @@
-from datetime import datetime, timezone
-from pydantic import BaseModel, Field, AliasPath
+from datetime import datetime
+from pydantic import BaseModel, Field
 
 
 class BitrixCalendarModel(BaseModel):
     id: int = Field(..., alias="ID")
     name: str = Field(..., alias="NAME")
     description: str = Field(..., alias="DESCRIPTION")
-    link: str = Field(..., validation_alias=AliasPath('EXPORT', 'LINK'))
-
-
-class BitrixAppStorageModel(BaseModel):
-    space: str
-    api_key: str
-    admin_email: str
-    member_id: str
+    # link: str = Field(..., validation_alias=AliasPath('EXPORT', 'LINK'))
+    # ссылка оказалась ссылкой на экспорт, кто бы мог подумать. Вырезал
 
 
 class SelectedClientsModel(BaseModel):
@@ -27,32 +21,47 @@ class ParticipantsModel(BaseModel):
     selectedClients: list[SelectedClientsModel]
 
 
-class AppOptionModel(BaseModel):
-    option_name: str
-    option_data: str
-
-
 class PortalModel(BaseModel):
     """
-    Администратор портала
+    Портал Bitrix24, подключённый к системе
     """
     member_id: str
     client_endpoint: str
     scope: str
-    access_token: str
-    refresh_token: str
-    updated_at: datetime | None = None
+
+
+class KtalkSpaceModel(BaseModel):
+    """
+    Интеграция портала с Ktalk
+    """
+    member_id: str
+    space: str
+    api_key: str
+    admin_email: str
 
 
 class UserModel(BaseModel):
     """
-    Пользователь портала, в том числе администраторы
+    Пользователь портала
     """
-    id: int
+    user_id: int
     member_id: str
     name: str
     last_name: str
     is_admin: bool
+
+
+class UserAuthModel(BaseModel):
+    """
+    Данные  пользователя
+    """
+    user_id: int
+    member_id: str
+    client_endpoint: str = Field(exclude=True)  # exclude необходим при преобразовании из модели в схему. У схемы нет такого поля.
     access_token: str
     refresh_token: str
-    updated_at: datetime | None = datetime.now(timezone.utc)
+    updated_at: datetime = Field(default=datetime.now())
+
+    def dict_with_excluded_fields(self):
+        return {**self.model_dump(mode="json"), "client_endpoint": self.client_endpoint}
+    

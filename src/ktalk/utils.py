@@ -1,10 +1,9 @@
-from datetime import datetime
-from src.models import BitrixAppStorageModel
+from src.models import KtalkSpaceModel
 from src.ktalk.models import KTalkBackAnswerModel
 
 
-def _get_meeting_url(ktalk_response: dict, options: BitrixAppStorageModel) -> str:
-    url = f'https://{options.space}.ktalk.ru/'
+def _get_meeting_url(ktalk_response: dict, ktalk_space: KtalkSpaceModel) -> str:
+    url = f'https://{ktalk_space.space}.ktalk.ru/'
     room = ktalk_response.get('room')
     room_name = room['roomName']
     try:
@@ -21,8 +20,8 @@ def _get_sip_settings(ktalk_response: dict) -> dict:
         return {}
 
 
-def get_back_answer(ktalk_response: dict, options: BitrixAppStorageModel) -> KTalkBackAnswerModel:
-    full_url = _get_meeting_url(ktalk_response=ktalk_response, options=options)
+def get_back_answer(ktalk_response: dict, ktalk_space: KtalkSpaceModel) -> KTalkBackAnswerModel:
+    full_url = _get_meeting_url(ktalk_response=ktalk_response, ktalk_space=ktalk_space)
     sip_settings = _get_sip_settings(ktalk_response=ktalk_response)
     return KTalkBackAnswerModel(
         url=full_url, sipSettings=sip_settings

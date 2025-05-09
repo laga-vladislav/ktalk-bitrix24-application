@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import HTMLResponse
 
 from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest

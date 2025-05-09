@@ -1,6 +1,7 @@
 import os
 import datetime
-import jwt
+import jwt 
+from fastapi import HTTPException
 from src.models import UserModel
 from src.logger.custom_logger import logger
 

@@ -6,26 +6,37 @@ from fastapi import Request, HTTPException, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from src.auth import verify_token
-from src.middleware.utils import parse_form_data
 
+
+
+EXCLUDED_PATHS = {
+    "/docs", "/redoc", "/handler", "/create-external-meeting", "/install", "/placement"
+}
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         try:
-            # Исключения для публичных роутов
-            if request.url.path in ["/docs", "/redoc"] or request.url.path.startswith("/openapi") or request.url.path in ["/handler", "/ktalk-robot", "/install", "/placement"]:
+            try:
+                path = request.scope.get("path", "").rstrip("/")
+            except Exception:
+                path = "/"
+
+            logger.debug(f"METHOD: {request.method}, PATH: {path}")
+            logger.debug(f"HEADERS: {dict(request.headers)}")
+
+            if path in EXCLUDED_PATHS or path.startswith("/openapi"):
                 return await call_next(request)
 
-            logger.debug(request.headers)
+            if request.method == "OPTIONS":
+                return await call_next(request)
+
             auth_header = request.headers.get("Authorization")
             if not auth_header or not auth_header.startswith("Bearer "):
-                raise HTTPException(
-                    status_code=401, detail="Missing or invalid Authorization header")
+                raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
 
             token = auth_header.split("Bearer ")[-1]
             if not verify_token(token):
-                raise HTTPException(
-                    status_code=401, detail="Invalid or expired token")
+                raise HTTPException(status_code=401, detail="Invalid or expired token")
 
             return await call_next(request)
 
