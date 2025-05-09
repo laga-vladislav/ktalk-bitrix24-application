@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 
 from src.auth import create_jwt
 from crest.crest import CRestBitrix24
-from crest.models import AuthTokens, CallRequest
+from crest.models import AuthTokens
 from src.models import UserModel, UserAuthModel
 
 from src.db.database import get_session

@@ -1,13 +1,13 @@
 from typing import AsyncGenerator
 from src.db.database import get_session
-from src.db.requests import get_portal, get_user_auth_without_model, get_user, get_ktalk_space
+from src.db.requests import get_portal, get_user_auth_without_model, get_ktalk_space
 
 from fastapi import APIRouter, Depends, Query, Body, Response, HTTPException
 
 from crest.crest import CRestBitrix24
 from src.router.utils import get_crest
 
-from src.models import PortalModel, UserModel, UserAuthModel
+from src.models import PortalModel, UserAuthModel
 
 from src.bitrix_requests import create_ktalk_calendar_event, get_ktalk_company_calendar, send_notification_to_blogpost
 from src.ktalk.requests import create_meeting

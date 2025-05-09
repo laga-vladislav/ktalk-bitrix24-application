@@ -4,44 +4,36 @@ from datetime import datetime
 def date_validator(date_value: str | int) -> str | int:
     if isinstance(date_value, int) or (isinstance(date_value, str) and date_value.isdigit()):
         timestamp = int(date_value)
-        # Преобразуем в секунды
         timestamp_sec = timestamp // 1000
         datetime.fromtimestamp(timestamp_sec)  # Проверка корректности
         return timestamp
     else:
-        # Проверяем формат 'dd.mm.yyyy HH:MM:SS'
         try:
             datetime.strptime(date_value, '%d.%m.%Y %H:%M:%S')
             return date_value
         except ValueError:
-            pass  # Переходим к следующему формату
-
-        # Проверяем формат 'YYYY-MM-DDTHH:MM:SS.ssssssZ'
-        try:
-            datetime.strptime(date_value, '%Y-%m-%dT%H:%M:%SZ')
-            return date_value
-        except ValueError:
-            pass  # Переходим к следующему формату
-
-        raise ValueError(
-            "Дата должна быть в формате timestamp, 'dd.mm.yyyy HH:MM:SS', '%Y-%m-%dT%H:%M:%SZ'")
+            try:
+                datetime.strptime(date_value, '%Y-%m-%dT%H:%M:%SZ')
+                return date_value
+            except ValueError:
+                raise ValueError(
+                    "Дата должна быть в формате timestamp, 'dd.mm.yyyy HH:MM:SS', '%Y-%m-%dT%H:%M:%SZ'")
 
 
 def timezone_validator(timezone_value: str) -> str:
     timezone_value = timezone_value.upper()
     if 'GMT' not in timezone_value:
-        raise ValueError("Часовой пояс должен начинаться с 'GMT'")
+        raise ValueError("Часовой пояс должен начинаться с 'GMT'")
     elif '+' not in timezone_value and '-' not in timezone_value:
-        raise ValueError("Часовой пояс должен содержать '+' или '-'")
+        raise ValueError("Часовой пояс должен содержать '+' или '-'")
     elif timezone_value.count('+') > 1 or timezone_value.count('-') > 1:
         raise ValueError(
-            "Часовой пояс должен содержать только один знак '+' или '-'")
+            "Часовой пояс должен содержать только один знак '+' или '-'")
     else:
         try:
-            int(timezone_value.split('+')
-                [1]) if '+' in timezone_value else int(timezone_value.split('-')[1])
+            int(timezone_value.split('+')[1]) if '+' in timezone_value else int(timezone_value.split('-')[1])
         except ValueError:
-            raise ValueError("Часовой пояс должен содержать цифры")
+            raise ValueError("Часовой пояс должен содержать цифры")
     return timezone_value
 
 
@@ -55,7 +47,6 @@ def pincode_validator(pinCode_value: str | int) -> str | int:
             int(pinCode_value)
         except ValueError:
             raise ValueError("Пин код должен содержать только цифры")
-
     if any((len(pinCode_value) < 4, len(pinCode_value) > 6)):
         raise ValueError("Пин код должен содержать от 4 до 6 цифр")
     return pinCode_value
@@ -64,10 +55,8 @@ def pincode_validator(pinCode_value: str | int) -> str | int:
 def bool_validator(value: bool | str) -> bool | str:
     if isinstance(value, str):
         value = value.upper()
-
         if value not in ['Y', 'N']:
             raise ValueError(
                 "Значение должно быть 'Y' или 'N', либо булевым значением")
-
         return True if value == 'Y' else False
     return value

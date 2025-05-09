@@ -1,8 +1,6 @@
 import pytest
 from sqlalchemy.exc import IntegrityError
 
-from src.models import KtalkSpaceModel
-
 from src.db.requests import add_portal, get_portal, refresh_portal
 from src.db.requests import add_ktalk_space, get_ktalk_space, refresh_ktalk_space
 from src.db.requests import add_user, get_user, refresh_user

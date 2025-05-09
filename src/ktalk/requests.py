@@ -9,8 +9,10 @@ from src.logger.custom_logger import logger
 
 async def create_meeting(meeting: MeetingModel, ktalk_space: KtalkSpaceModel) -> KTalkBackAnswerModel:
     async with AsyncClient() as client:
-        meeting.start = str(meeting.start_ktalk)
-        meeting.end = str(meeting.end_ktalk)
+        meeting_temp = meeting.model_copy()
+        meeting_temp.start = str(meeting_temp.start_ktalk())
+        meeting_temp.end = str(meeting_temp.end_ktalk())
+        logger.debug(meeting_temp)
 
         space_name = ktalk_space.space
         email = ktalk_space.admin_email
@@ -19,7 +21,7 @@ async def create_meeting(meeting: MeetingModel, ktalk_space: KtalkSpaceModel) ->
         response = await client.post(
             url=f"https://{space_name}.ktalk.ru/api/emailCalendar/{email}",
             headers={"X-Auth-Token": api_key},
-            json=meeting.model_dump()
+            json=meeting_temp.model_dump()
         )
         logger.debug(response)
         if response.status_code == 403:

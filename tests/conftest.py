@@ -3,7 +3,8 @@ from typing import AsyncGenerator
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from src.models import PortalModel, UserAuthModel, KtalkSpaceModel
+from src.auth import create_jwt
+from src.models import PortalModel, UserAuthModel, KtalkSpaceModel, UserModel
 from src.db.schemes import Base
 
 from httpx import AsyncClient, ASGITransport
@@ -97,6 +98,23 @@ async def get_portal() -> PortalModel:
 @pytest.fixture
 def admin_refresh_token() -> str:
     return refresh_token_admin
+
+
+@pytest.fixture
+async def get_admin_user() -> UserModel:
+    auth = await crest_auth.refresh_token(refresh_token=refresh_token_admin)
+    return UserModel(
+        user_id=auth['user_id'],
+        member_id=auth['member_id'],
+        is_admin=True,
+        name="",
+        last_name=""
+    )
+
+
+@pytest.fixture
+async def get_jwt_token(get_admin_user: UserModel) -> str:
+    return create_jwt(user=get_admin_user)
 
 
 @pytest.fixture

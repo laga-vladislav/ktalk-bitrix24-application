@@ -1,10 +1,10 @@
-from typing import List
 from crest.models import AuthTokens, CallRequest
-from src.models import PortalModel, UserModel, UserAuthModel
+from src.models import UserModel, UserAuthModel
 from src.ktalk.models import MeetingModel
 from crest.crest import CRestBitrix24
 from src.models import ParticipantsModel, BitrixCalendarModel
 from src.ktalk.models import MeetingModel, KTalkBackAnswerModel
+from src.utils import get_offset_sec
 
 from src.logger.custom_logger import logger
 
@@ -15,8 +15,7 @@ CHAT_ID = str  # Строка! формата chatXXX. Общий чат вро�
 
 
 class MessageText:
-    TEMPLATE = """[B]Тема:[/B] {subject}
-[B]Описание:[/B] {description}
+    TEMPLATE = """[B]Описание:[/B] {description}
 [B]Подключение: [URL={url}]по ссылке[/URL][/B]
 [B]Пин-код:[/B] {pin_code}
 [I]Создано событие в [URL={calendar_url}]календаре компании[/URL][/I]"""
@@ -49,8 +48,27 @@ async def get_user_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoin
 async def get_user_raw_info(CRest: CRestBitrix24, tokens: AuthTokens, client_endpoint: str, member_id: str) -> dict:
     """
     Возвращает полную информацию о пользователе.
-    Формат возвращаемых данных:
+     Returns:
+        dict: Словарь с данными пользователя. Пример структуры
 
+            {
+                'ID': '1',
+                'XML_ID': '62328606',
+                'ACTIVE': True,
+                'NAME': 'Name',
+                'LAST_NAME': 'LastName',
+                'EMAIL': 'syjuneci@asciibinder.net',
+                'LAST_LOGIN': '2025-05-07T14:53:09+03:00',
+                'DATE_REGISTER': '2025-04-18T03:00:00+03:00',
+                'IS_ONLINE': 'Y',
+                'TIME_ZONE_OFFSET': '21600',
+                'TIMESTAMP_X': '21.04.2025 06:45:49',
+                'LAST_ACTIVITY_DATE': '2025-05-07 18:04:17',
+                'PERSONAL_GENDER': '',
+                'PERSONAL_BIRTHDAY': '',
+                'UF_EMPLOYMENT_DATE': '',
+                'UF_DEPARTMENT': [1]
+            }
     """
     inforeq = CallRequest(method="user.current")
     user_info = await CRest.call(
@@ -159,8 +177,8 @@ async def create_ktalk_calendar_event(
         params={
             'type': 'company_calendar',
             'ownerId': 0,
-            'from_ts': meeting.start_robot / 1000,
-            'to_ts': meeting.end_robot / 1000,
+            'from_ts': meeting.start_robot(False) / 1000,
+            'to_ts': meeting.end_robot(False) / 1000,
             'section': calendar_id,
             'name': meeting.subject,
             'description': description
@@ -229,7 +247,7 @@ async def send_notification_to_blogpost(
     call = CallRequest(
         method="log.blogpost.add",
         params={
-            "POST_TITLE": f"[B]{meeting.subject}[/B]",
+            "POST_TITLE": f"Тема: {meeting.subject}",
             "POST_MESSAGE": f"Создана видеоконференция на платформе КТолк\n{message_text}"
         }
     )
@@ -256,7 +274,7 @@ async def create_robot_request(
         method="bizproc.robot.add",
         params={
             'CODE': 'ktalk_robot',
-            'HANDLER': f'{application_domain}/create-external-meeting',
+            'HANDLER': f'https://{application_domain}/create-external-meeting',
             'AUTH_USER_ID': 1,
             'NAME': 'Робот КТолк',
             "PROPERTIES": {
@@ -280,11 +298,11 @@ async def create_robot_request(
                     "type": "datetime",
                     "required": "Y"
                 },
-                # "timezone": {
-                #     "name": "Часовой пояс",
-                #     "type": "string",
-                #     "required": "Y"
-                # },
+                "timezone": {
+                    "name": "Разница от МСК (например, -2, 0 или 6)",
+                    "type": "int",
+                    "required": "Y"
+                },
                 "allowAnonymous": {
                     "name": "Подключение внешних пользователей",
                     "type": "bool",
@@ -356,7 +374,7 @@ async def add_todo_activity(
     owner_id: int,
     meeting: MeetingModel,
     meeting_url: str,
-    participants: ParticipantsModel = None,
+    # participants: ParticipantsModel = None,
     owner_type_id: int = 2
 ):
     """
@@ -374,7 +392,7 @@ async def add_todo_activity(
             'ownerId': owner_id,
             'title': meeting.subject,
             'description': meeting.description,
-            'deadline': meeting.end_ktalk,
+            'deadline': meeting.end_ktalk(False),
             'responsibleId': creator_id,
             'settings': [
                 {
@@ -382,8 +400,8 @@ async def add_todo_activity(
                     'id': 'link'
                 },
                 {
-                    'from': meeting.start_robot,
-                    'to': meeting.end_robot,
+                    'from': meeting.start_robot(),
+                    'to': meeting.end_robot(),
                     # 'duration': ,
                     'location': '',
                     # 'selectedUserIds': participants.colleguesId,

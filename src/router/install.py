@@ -8,7 +8,7 @@ from crest.crest import CRestBitrix24
 from crest.models import AuthTokens, CallRequest
 from src.db.database import get_session
 from src.models import PortalModel, UserModel, UserAuthModel
-from src.db.requests import get_portal, add_portal, refresh_portal, add_user, get_user, set_user_auth, get_user_auth
+from src.db.requests import get_portal, add_portal, add_user, get_user, set_user_auth, get_user_auth
 from src.router.utils import get_crest
 from src.bitrix_requests import get_ktalk_company_calendar, create_ktalk_company_calendar, create_robot_request, get_user_info
 

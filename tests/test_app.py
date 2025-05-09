@@ -159,7 +159,9 @@ class Test2BitrixApplication:
             # application_domain=_get_base_domain_from_client_endpoint(get_admin_auth.client_endpoint)
         )
         print(result)
-        assert isinstance(result, bool) or isinstance(result, dict) and result['error'] == 'ERROR_ACTIVITY_ALREADY_INSTALLED'
+        if 'result' in result.keys():
+            assert result['result']
+        assert result['error'] == 'ERROR_ACTIVITY_ALREADY_INSTALLED'
 
 
     async def test_delete_robot_request(self, get_admin_auth: UserAuthModel):
@@ -275,16 +277,19 @@ class Test4FastapiApplication:
         assert result.status_code == 200
 
 
-    async def test_endpoint_set_settings(self, ac: AsyncClient, get_ktalk_space: KtalkSpaceModel):
+    async def test_endpoint_set_settings(self, ac: AsyncClient, get_ktalk_space: KtalkSpaceModel, get_jwt_token: str):
         result = await ac.post(
             '/set-settings',
-            json=get_ktalk_space.model_dump()
+            json=get_ktalk_space.model_dump(),
+            headers={
+                'Authorization': 'Bearer ' + get_jwt_token
+            }
         )
         print(result)
         assert result.status_code == 200
 
     
-    async def test_endpoint_create_internal_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
+    async def test_endpoint_create_internal_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel, get_jwt_token: str):
         fields = get_admin_auth.model_fields_set
         print(fields)
         result = await ac.post(
@@ -293,13 +298,17 @@ class Test4FastapiApplication:
                 "memberId": get_admin_auth.member_id,
                 "creatorId": get_admin_auth.user_id,
             },
-            json=ktalk_data.meeting_model.model_dump(mode="json")
+            json=ktalk_data.meeting_model.model_dump(mode="json"),
+            headers={
+                'Authorization': 'Bearer ' + get_jwt_token
+            }
         )
         print(result)
         assert result.status_code == 200
 
 
-    async def test_endpoint_create_external_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
+    async def test_endpoint_create_external_meeting(self, ac: AsyncClient, get_admin_auth: UserAuthModel, get_jwt_token: str):
+        # Тест надо переписать под формат робота.
         result = await ac.post(
             '/create-external-meeting',
             params={
@@ -307,17 +316,23 @@ class Test4FastapiApplication:
                 "ownerId": bitrix_data.deal_id,
                 "memberId": get_admin_auth.member_id
             },
-            json=ktalk_data.meeting_model.model_dump(mode="json")
+            json=ktalk_data.meeting_model.model_dump(mode="json"),
+            headers={
+                'Authorization': 'Bearer ' + get_jwt_token
+            }
         )
         print(result)
         assert result.status_code == 200
 
     
-    async def test_endpoint_handler(self, ac: AsyncClient, get_admin_auth: UserAuthModel):
+    async def test_endpoint_handler(self, ac: AsyncClient, get_admin_auth: UserAuthModel, get_jwt_token: str):
         result = await ac.post(
             '/handler',
             data={
                 "REFRESH_ID": get_admin_auth.refresh_token
+            },
+            headers={
+                'Authorization': 'Bearer ' + get_jwt_token
             }
         )
         print(result)
