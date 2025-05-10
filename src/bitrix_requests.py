@@ -177,8 +177,8 @@ async def create_ktalk_calendar_event(
         params={
             'type': 'company_calendar',
             'ownerId': 0,
-            'from_ts': meeting.start_robot(False) / 1000,
-            'to_ts': meeting.end_robot(False) / 1000,
+            'from_ts': meeting.start_robot() / 1000,
+            'to_ts': meeting.end_robot() / 1000,
             'section': calendar_id,
             'name': meeting.subject,
             'description': description
